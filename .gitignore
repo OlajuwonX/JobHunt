@@ -1,8 +1,11 @@
-# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+# ─────────────────────────────────────────────────────────────────────────────
+# JobHunt Monorepo — .gitignore
+# ─────────────────────────────────────────────────────────────────────────────
 
-# dependencies
-/node_modules
-/.pnp
+# ─── Dependencies ─────────────────────────────────────────────────────────────
+# Match node_modules anywhere in the repo (frontend/, backend/, root)
+node_modules/
+.pnp
 .pnp.*
 .yarn/*
 !.yarn/patches
@@ -10,36 +13,49 @@
 !.yarn/releases
 !.yarn/versions
 
-# testing
-/coverage
+# ─── Environment Variables ────────────────────────────────────────────────────
+# NEVER commit secrets. Use .env.example for templates.
+.env
+.env.*
+!.env.example    # allow committing the template
 
-# next.js
-/.next/
-/out/
+# ─── Next.js (frontend/) ──────────────────────────────────────────────────────
+.next/
+out/
+next-env.d.ts
 
-# production
-/build
+# ─── Build Outputs ────────────────────────────────────────────────────────────
+dist/
+build/
+*.tsbuildinfo
 
-# misc
-.DS_Store
-*.pem
+# ─── Test Coverage ────────────────────────────────────────────────────────────
+coverage/
+.nyc_output/
 
-# debug
+# ─── Logs ─────────────────────────────────────────────────────────────────────
+*.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
-# env files (can opt-in for committing if needed)
-.env*
+# ─── OS / Editor ──────────────────────────────────────────────────────────────
+.DS_Store
+.DS_Store?
+._*
+Thumbs.db
+*.pem
+.idea/
+.vscode/
+*.swp
+*.swo
 
-# vercel
+# ─── Deployment ───────────────────────────────────────────────────────────────
 .vercel
 
-# typescript
-*.tsbuildinfo
-next-env.d.ts
-
+# ─── Claude Code ──────────────────────────────────────────────────────────────
+# Keep these private — they contain project-specific AI instructions
 CLAUDE.md
-/.claude
 AGENTS.md
+/.claude

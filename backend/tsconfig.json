@@ -1,0 +1,46 @@
+{
+  "compilerOptions": {
+    // Target ES2022 — modern JS features like top-level await, class fields
+    "target": "ES2022",
+    // Node16 modules — required for Node.js
+    "module": "Node16",
+    // Which JS built-in types TypeScript knows about
+    "lib": [
+      "ES2022"
+    ],
+    // Where compiled .js files go
+    "outDir": "./dist",
+    // Where TypeScript looks for source files
+    "rootDir": "./src",
+    // Strict mode — catches more bugs at compile time
+    // This means: no implicit any, strict null checks, etc.
+    "strict": true,
+    // Allows: import fs from 'fs' instead of import * as fs from 'fs'
+    "esModuleInterop": true,
+    // Skip type checking of .d.ts files in node_modules (much faster builds)
+    "skipLibCheck": true,
+    // Prevents issues on case-insensitive file systems (Windows/Mac)
+    "forceConsistentCasingInFileNames": true,
+    // Allows: import data from './data.json'
+    "resolveJsonModule": true,
+    // Generate .d.ts declaration files (useful if backend becomes a package)
+    "declaration": true,
+    // Generate source maps — allows debugger to map back to TypeScript
+    "sourceMap": true,
+    // Node module resolution strategy
+    // "node10" is the modern name for what was "node" in TS < 5.0
+    // Use this for CommonJS + Node.js projects
+    "moduleResolution": "node16",
+    // Allows decorators (useful if we ever use NestJS or TypeORM)
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true
+  },
+  "include": [
+    "src/**/*"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "tests"
+  ]
+}

@@ -1,0 +1,83 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# JobHunt — Docker Compose (Local Development)
+# ─────────────────────────────────────────────────────────────────────────────
+#
+# Starts three services:
+#   - postgres: local database (mirrors your Neon structure)
+#   - backend:  Express API on port 4000
+#   - frontend: Next.js on port 3000
+#
+# USAGE:
+#   Start everything:      docker-compose up --build
+#   Start in background:   docker-compose up -d
+#   Stop everything:       docker-compose down
+#   Reset database:        docker-compose down -v  (deletes the volume too)
+#   View logs:             docker-compose logs -f backend
+#
+# NOTE: In this project we use Neon for the database by default.
+# This postgres service is here if you want a fully offline local setup.
+# To use it, change DATABASE_URL in backend/.env to:
+#   postgresql://jobhunt:jobhunt@localhost:5432/jobhunt
+# ─────────────────────────────────────────────────────────────────────────────
+
+version: '3.9'
+
+services:
+
+  # ─── PostgreSQL (local mirror of Neon) ────────────────────────────────────
+  postgres:
+    image: postgres:15-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: 
+      POSTGRES_USER: 
+      POSTGRES_PASSWORD: 
+    ports:
+      - '5432:5432'  # expose to host so you can connect with TablePlus/DBeaver
+    volumes:
+      - pgdata:/var/lib/postgresql/data  # persist data between restarts
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U jobhunt']
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # ─── Backend (Express API) ─────────────────────────────────────────────────
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    ports:
+      - '4000:4000'
+    env_file:
+      - ./backend/.env      # reads your .env file
+    environment:
+      NODE_ENV: development
+    depends_on:
+      postgres:
+        condition: service_healthy  # wait for postgres to be ready
+    volumes:
+      - ./backend/src:/app/src      # hot-reload: your changes reflect immediately
+
+  # ─── Frontend (Next.js) ───────────────────────────────────────────────────
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    ports:
+      - '3000:3000'
+    env_file:
+      - ./frontend/.env.local
+    environment:
+      NODE_ENV: development
+    depends_on:
+      - backend
+    volumes:
+      - ./frontend/src:/app/src     # hot-reload
+
+# ─── Volumes ──────────────────────────────────────────────────────────────────
+# Named volumes persist data even when containers are removed
+volumes:
+  pgdata:

@@ -95,9 +95,9 @@ app.use(cookieParser())
 app.use(
   rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minute window
-    limit: 100,                // max 100 requests per window per IP
-    standardHeaders: true,     // send RateLimit-* headers in responses
-    legacyHeaders: false,      // don't send X-RateLimit-* (deprecated)
+    limit: 100, // max 100 requests per window per IP
+    standardHeaders: true, // send RateLimit-* headers in responses
+    legacyHeaders: false, // don't send X-RateLimit-* (deprecated)
     message: {
       success: false,
       error: 'Too many requests from this IP. Please try again later.',

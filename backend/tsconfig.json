@@ -5,9 +5,7 @@
     // Node16 modules — required for Node.js
     "module": "Node16",
     // Which JS built-in types TypeScript knows about
-    "lib": [
-      "ES2022"
-    ],
+    "lib": ["ES2022"],
     // Where compiled .js files go
     "outDir": "./dist",
     // Where TypeScript looks for source files
@@ -35,12 +33,6 @@
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true
   },
-  "include": [
-    "src/**/*"
-  ],
-  "exclude": [
-    "node_modules",
-    "dist",
-    "tests"
-  ]
+  "include": ["src/**/*"],
+  "exclude": ["node_modules", "dist", "tests"]
 }

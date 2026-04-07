@@ -1,11 +1,9 @@
 node_modules
-dist
-.next/**
 .next
 out
 build
 coverage
 *.lock
 package-lock.json
-prisma/migrations
+next-env.d.ts
 public

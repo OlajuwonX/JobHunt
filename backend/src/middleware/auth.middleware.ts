@@ -60,11 +60,7 @@ interface JWTPayload {
  * Attaches the decoded user to req.user if valid.
  * Throws 401 if no token or token is invalid/expired.
  */
-export const requireAuth = (
-  req: Request,
-  _res: Response,
-  next: NextFunction
-): void => {
+export const requireAuth = (req: Request, _res: Response, next: NextFunction): void => {
   // Read the JWT from the HTTP-only cookie named 'token'
   // (We set this cookie name in the login controller)
   const token = req.cookies?.token
@@ -79,10 +75,7 @@ export const requireAuth = (
     //   1. The signature is valid (wasn't tampered with)
     //   2. The token hasn't expired
     //   3. It was signed with our JWT_SECRET
-    const decoded = jwt.verify(
-      token,
-      process.env.JWT_SECRET as string
-    ) as JWTPayload
+    const decoded = jwt.verify(token, process.env.JWT_SECRET as string) as JWTPayload
 
     // Attach the user data to the request object
     // Controllers access this with req.user.id

@@ -31,8 +31,8 @@ export const router = Router()
 // Each line mounts a feature's routes under a path prefix.
 // The prefix here + the path defined in each route file = the full endpoint URL.
 
-router.use('/auth', authRoutes)               // → /api/v1/auth/*
-router.use('/jobs', jobsRoutes)               // → /api/v1/jobs/*
-router.use('/profile', profileRoutes)         // → /api/v1/profile/*
+router.use('/auth', authRoutes) // → /api/v1/auth/*
+router.use('/jobs', jobsRoutes) // → /api/v1/jobs/*
+router.use('/profile', profileRoutes) // → /api/v1/profile/*
 router.use('/applications', applicationsRoutes) // → /api/v1/applications/*
-router.use('/dashboard', dashboardRoutes)     // → /api/v1/dashboard/*
+router.use('/dashboard', dashboardRoutes) // → /api/v1/dashboard/*

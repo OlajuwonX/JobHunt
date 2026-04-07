@@ -22,13 +22,7 @@
 import { Router } from 'express'
 import { rateLimit } from 'express-rate-limit'
 
-import {
-  register,
-  login,
-  logout,
-  verifyEmail,
-  getMe,
-} from '../controllers/auth.controller'
+import { register, login, logout, verifyEmail, getMe } from '../controllers/auth.controller'
 import { requireAuth } from '../middleware/auth.middleware'
 
 const router = Router()
@@ -38,7 +32,8 @@ const router = Router()
 // This prevents brute-force password attacks and spam account creation.
 const authRateLimit = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  limit: 10,                 // max 10 attempts per 15 minutes per IP
+  limit: 10, // max 10 attempts per 15 minutes per IP
+
   message: {
     success: false,
     error: 'Too many auth attempts. Please wait 15 minutes.',

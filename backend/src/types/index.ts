@@ -38,8 +38,8 @@ export interface PaginatedResponse<T> {
   pagination: {
     page: number
     limit: number
-    total: number        // total items across all pages
-    totalPages: number   // Math.ceil(total / limit)
+    total: number // total items across all pages
+    totalPages: number // Math.ceil(total / limit)
     hasNext: boolean
     hasPrev: boolean
   }

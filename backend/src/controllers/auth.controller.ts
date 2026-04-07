@@ -52,7 +52,7 @@ const loginSchema = z.object({
 // ─── JWT Cookie Config ─────────────────────────────────────────────────────────
 // Reusable cookie options so we're consistent everywhere we set the JWT cookie.
 const JWT_COOKIE_OPTIONS = {
-  httpOnly: true,  // can't be read by JavaScript (prevents XSS token theft)
+  httpOnly: true, // can't be read by JavaScript (prevents XSS token theft)
   secure: process.env.NODE_ENV === 'production', // HTTPS only in production
   sameSite: 'strict' as const, // prevents CSRF (cookie only sent from same site)
   maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days in milliseconds

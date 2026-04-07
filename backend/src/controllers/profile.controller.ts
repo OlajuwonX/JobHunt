@@ -17,21 +17,21 @@ const updateProfileSchema = z.object({
 })
 
 export const getProfile = asyncHandler(async (req: Request, res: Response) => {
-  const userId = req.user!.id
-  // const profile = await profileService.getProfile(userId)
-  sendSuccess(res, { userId, message: 'Profile — coming soon' })
+  const _userId = req.user!.id
+  // const profile = await profileService.getProfile(_userId)
+  sendSuccess(res, { message: 'Profile — coming soon' })
 })
 
 export const updateProfile = asyncHandler(async (req: Request, res: Response) => {
-  const userId = req.user!.id
-  const input = updateProfileSchema.parse(req.body)
-  // const profile = await profileService.updateProfile(userId, input)
-  sendSuccess(res, { userId, input, message: 'Profile update — coming soon' })
+  const _userId = req.user!.id
+  const _input = updateProfileSchema.parse(req.body)
+  // const profile = await profileService.updateProfile(_userId, _input)
+  sendSuccess(res, { message: 'Profile update — coming soon' })
 })
 
 export const uploadResume = asyncHandler(async (req: Request, res: Response) => {
-  const userId = req.user!.id
+  const _userId = req.user!.id
   // File will be in req.file (after multer middleware processes it)
-  // const result = await profileService.uploadResume(userId, req.file)
-  sendSuccess(res, { userId, message: 'Resume upload — coming soon' })
+  // const result = await profileService.uploadResume(_userId, req.file)
+  sendSuccess(res, { message: 'Resume upload — coming soon' })
 })

@@ -37,7 +37,7 @@ const jobFiltersSchema = z.object({
 export const getJobs = asyncHandler(async (req: Request, res: Response) => {
   // Validate and parse query params
   const filters = jobFiltersSchema.parse(req.query)
-  const userId = req.user!.id
+  const _userId = req.user!.id
 
   // Fetch jobs from service
   // const result = await jobsService.getJobsForUser(userId, filters)
@@ -63,7 +63,7 @@ export const getJobs = asyncHandler(async (req: Request, res: Response) => {
  */
 export const getJobById = asyncHandler(async (req: Request, res: Response) => {
   const { id } = req.params
-  const userId = req.user!.id
+  const _userId = req.user!.id
 
   if (!id) {
     throw new AppError('Job ID is required', 400)

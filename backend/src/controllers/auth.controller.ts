@@ -66,7 +66,7 @@ const JWT_COOKIE_OPTIONS = {
  */
 export const register = asyncHandler(async (req: Request, res: Response) => {
   // Step 1: Validate the request body. parse() throws ZodError on failure.
-  const input = registerSchema.parse(req.body)
+  const _input = registerSchema.parse(req.body)
 
   // Step 2: Call the service to create the user.
   // The service handles: hashing the password, checking for duplicate email,
@@ -86,7 +86,7 @@ export const register = asyncHandler(async (req: Request, res: Response) => {
  * Authenticate user and set JWT in an HTTP-only cookie.
  */
 export const login = asyncHandler(async (req: Request, res: Response) => {
-  const input = loginSchema.parse(req.body)
+  const _input = loginSchema.parse(req.body)
 
   // The service returns a signed JWT token and the safe user object
   // const { token, user } = await authService.login(input)

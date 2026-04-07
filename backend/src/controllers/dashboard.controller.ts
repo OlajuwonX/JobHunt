@@ -9,7 +9,7 @@ import { asyncHandler } from '../middleware/asyncHandler'
 import { sendSuccess } from '../utils/response'
 
 export const getDashboard = asyncHandler(async (req: Request, res: Response) => {
-  const userId = req.user!.id
+  const _userId = req.user!.id
   // const stats = await dashboardService.getDashboardStats(userId)
   sendSuccess(res, {
     stats: { today: 0, thisMonth: 0, total: 0 },

@@ -41,7 +41,6 @@ export class AppError extends Error {
 }
 
 // ─── Error Handler ────────────────────────────────────────────────────────────
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 export const errorHandler = (
   err: Error | AppError,
   _req: Request,

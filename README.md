@@ -102,7 +102,7 @@ Browser (Next.js)
 ### 1. Clone the repository
 
 ```bash
-git clone https://github.com/your-username/jobhunt.git
+git clone https://github.com/olajuwonx/jobhunt.git
 cd jobhunt
 ```
 
@@ -299,7 +299,7 @@ Workflow file: [.github/workflows/ci.yml](.github/workflows/ci.yml)
 | Service | Platform | Cost |
 |---------|----------|------|
 | Frontend | [Vercel](https://vercel.com) | Free |
-| Backend | [Railway](https://railway.app) | Free ($5 credit) |
+| Backend | [Render](https://render.com) | Free |
 | Database | [Neon](https://neon.tech) | Free (512 MB) |
 | Files | [Cloudinary](https://cloudinary.com) | Free (25 GB) |
 | Email | Gmail SMTP | Free (500/day) |

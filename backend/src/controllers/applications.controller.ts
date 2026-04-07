@@ -19,29 +19,29 @@ const updateApplicationSchema = z.object({
 })
 
 export const getApplications = asyncHandler(async (req: Request, res: Response) => {
-  const userId = req.user!.id
-  // const applications = await applicationsService.getApplications(userId)
+  const _userId = req.user!.id
+  // const applications = await applicationsService.getApplications(_userId)
   sendSuccess(res, { items: [], message: 'Applications — coming soon' })
 })
 
 export const createApplication = asyncHandler(async (req: Request, res: Response) => {
-  const userId = req.user!.id
-  const input = createApplicationSchema.parse(req.body)
-  // const application = await applicationsService.createApplication(userId, input)
-  sendCreated(res, { userId, input, message: 'Application created — coming soon' })
+  const _userId = req.user!.id
+  const _input = createApplicationSchema.parse(req.body)
+  // const application = await applicationsService.createApplication(_userId, _input)
+  sendCreated(res, { message: 'Application created — coming soon' })
 })
 
 export const updateApplication = asyncHandler(async (req: Request, res: Response) => {
-  const userId = req.user!.id
+  const _userId = req.user!.id
   const { id } = req.params
-  const input = updateApplicationSchema.parse(req.body)
-  // const application = await applicationsService.updateApplication(id, userId, input)
-  sendSuccess(res, { id, input, message: 'Application updated — coming soon' })
+  const _input = updateApplicationSchema.parse(req.body)
+  // const application = await applicationsService.updateApplication(id, _userId, _input)
+  sendSuccess(res, { id, message: 'Application updated — coming soon' })
 })
 
 export const deleteApplication = asyncHandler(async (req: Request, res: Response) => {
-  const userId = req.user!.id
-  const { id } = req.params
-  // await applicationsService.deleteApplication(id, userId)
+  const _userId = req.user!.id
+  const { id: _id } = req.params
+  // await applicationsService.deleteApplication(_id, _userId)
   sendSuccess(res, { message: 'Application removed' })
 })

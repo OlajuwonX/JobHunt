@@ -1,25 +1,23 @@
 /**
  * ─────────────────────────────────────────────────────────────────────────────
- * JobHunt Backend — Express App Configuration (src/app.ts)
+ * Express App Configuration (src/app.ts)
  * ─────────────────────────────────────────────────────────────────────────────
  *
- * This file CONFIGURES the Express app — it doesn't start it (that's index.ts).
+ * This file configures the Express app (middleware + routes).
+ * It does NOT start the server — that's index.ts.
  *
- * Middleware is the key concept here. Every HTTP request passes through a
- * "middleware chain" before reaching your route handler. Think of it like
- * airport security — every passenger (request) goes through every checkpoint
- * in order: check ticket → scan bag → check ID → board plane.
+ * Every HTTP request passes through this middleware chain in order:
  *
- * Our request pipeline:
  *   Request
- *     → helmet        (add security headers)
+ *     → helmet        (security headers)
  *     → cors          (allow frontend to call us)
- *     → express.json  (parse the JSON body so req.body works)
- *     → cookieParser  (parse cookies so req.cookies works)
- *     → rateLimit     (block IPs making too many requests)
+ *     → json parser   (req.body becomes usable)
+ *     → cookieParser  (req.cookies becomes usable)
+ *     → rateLimit     (global throttle)
+ *     → csrfProtection (validate X-CSRF-Token on mutations)
  *     → /api/v1/*     (your actual route handlers)
- *     → 404 handler   (if no route matched)
- *     → errorHandler  (catches any errors thrown above)
+ *     → 404 handler
+ *     → errorHandler  (catches all thrown errors)
  *
  * ─────────────────────────────────────────────────────────────────────────────
  */
@@ -32,72 +30,60 @@ import { rateLimit } from 'express-rate-limit'
 
 import { router } from './routes'
 import { errorHandler } from './middleware/errorHandler'
+import { csrfProtection } from './middleware/csrf.middleware'
 
-// Create the Express application instance
 export const app: Application = express()
 
 // ─── Trust Proxy ───────────────────────────────────────────────────────────────
-// When deployed behind a reverse proxy (Nginx, Railway, Vercel) the real client
-// IP is in the X-Forwarded-For header. This tells Express to trust that header
-// so rate limiting works correctly (otherwise all requests look like they come
-// from the proxy's IP instead of the real user's IP).
+// Required when deployed behind Nginx, Railway, Render, or any reverse proxy.
+// Ensures req.ip and rate limiting use the real client IP (from X-Forwarded-For)
+// instead of the proxy's IP.
 app.set('trust proxy', 1)
 
 // ─── Helmet — Security Headers ────────────────────────────────────────────────
-// Helmet automatically sets ~15 HTTP response headers that protect against
-// common web vulnerabilities:
-//   - Content-Security-Policy: restricts what resources can load (XSS prevention)
-//   - X-Frame-Options: prevents clickjacking
-//   - X-Content-Type-Options: prevents MIME type sniffing
-//   - Strict-Transport-Security: forces HTTPS
-// You get all of this for free with one line.
+// Automatically adds ~15 HTTP response headers that protect against common attacks:
+//   Content-Security-Policy → prevents XSS by restricting what scripts can run
+//   X-Frame-Options          → prevents clickjacking (embedding in iframes)
+//   X-Content-Type-Options   → prevents MIME sniffing
+//   Strict-Transport-Security → forces HTTPS
 app.use(helmet())
 
 // ─── CORS — Cross-Origin Resource Sharing ─────────────────────────────────────
-// By default, browsers block JavaScript from calling an API on a different domain.
+// Browsers block JavaScript from calling APIs on different domains by default.
 // Our frontend (localhost:3000) calling our backend (localhost:4000) is
-// "cross-origin" — so without CORS the browser would reject every request.
+// "cross-origin" and would be blocked without this.
 //
-// We whitelist our frontend URL and allow credentials (needed for JWT cookies).
+// We ONLY allow our frontend's exact origin — no wildcards.
+// Credentials:true is required to send cookies across origins.
 app.use(
   cors({
-    // Only allow requests from our frontend (set FRONTEND_URL in .env)
     origin: process.env.FRONTEND_URL || 'http://localhost:3000',
-
-    // REQUIRED for cookies — without this, JWT cookies won't be sent cross-origin
-    credentials: true,
-
-    // Which HTTP methods we allow
+    credentials: true, // REQUIRED: allows cookies to be sent cross-origin
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-
-    // Which headers the frontend is allowed to send
     allowedHeaders: ['Content-Type', 'Authorization', 'X-CSRF-Token'],
   })
 )
 
 // ─── Body Parsers ─────────────────────────────────────────────────────────────
-// Without these, req.body would be undefined.
-// express.json() reads the raw request body and parses it as JSON.
-// The 10kb limit prevents attackers from sending huge payloads to crash the server.
+// Without these, req.body is undefined.
+// The 10kb limit prevents attackers from sending huge payloads.
 app.use(express.json({ limit: '10kb' }))
 app.use(express.urlencoded({ extended: true, limit: '10kb' }))
 
 // ─── Cookie Parser ────────────────────────────────────────────────────────────
-// Without this, req.cookies would be undefined.
-// We use cookies to store the JWT auth token (safer than localStorage).
-// HTTP-only cookies can't be read by JavaScript — only sent with requests.
+// Without this, req.cookies is undefined.
+// We use cookies for: refresh token (HttpOnly) and CSRF token (readable).
 app.use(cookieParser())
 
 // ─── Global Rate Limiter ──────────────────────────────────────────────────────
-// Limits any single IP to 100 requests per 15 minutes across the entire API.
-// This is a "soft" global limit — stricter limits are applied on specific routes
-// (e.g. auth routes are limited to 10 requests/15min to prevent brute force).
+// Soft global limit: 100 requests per 15 minutes per IP.
+// Auth routes have their own stricter limits (10/15min) defined in auth.routes.ts.
 app.use(
   rateLimit({
-    windowMs: 15 * 60 * 1000, // 15 minute window
-    limit: 100, // max 100 requests per window per IP
-    standardHeaders: true, // send RateLimit-* headers in responses
-    legacyHeaders: false, // don't send X-RateLimit-* (deprecated)
+    windowMs: 15 * 60 * 1000,
+    limit: 100,
+    standardHeaders: true,
+    legacyHeaders: false,
     message: {
       success: false,
       error: 'Too many requests from this IP. Please try again later.',
@@ -105,40 +91,36 @@ app.use(
   })
 )
 
-// ─── Health Check Endpoint ────────────────────────────────────────────────────
-// A simple GET /health endpoint that returns 200 OK.
-// Used by:
-//   - Docker to check if the container is healthy (HEALTHCHECK in Dockerfile)
-//   - Railway/Render to know when the app is ready to receive traffic
-//   - Monitoring tools to alert when the API goes down
+// ─── CSRF Protection ──────────────────────────────────────────────────────────
+// Validates the X-CSRF-Token header matches the csrf_token cookie
+// on all state-changing requests (POST, PUT, PATCH, DELETE).
+// See: src/middleware/csrf.middleware.ts for detailed explanation.
+app.use(csrfProtection)
+
+// ─── Health Check ─────────────────────────────────────────────────────────────
+// Simple GET /health that returns 200.
+// Used by Docker HEALTHCHECK, Railway, and monitoring tools.
 app.get('/health', (_req: Request, res: Response) => {
   res.status(200).json({
     success: true,
     status: 'ok',
     timestamp: new Date().toISOString(),
-    uptime: process.uptime(), // seconds since server started
+    uptime: process.uptime(),
   })
 })
 
 // ─── API Routes ───────────────────────────────────────────────────────────────
-// All our feature routes are mounted under /api/v1
-// The "v1" prefix lets us release a v2 in the future without breaking existing clients
-// router (from routes/index.ts) combines all feature routes
+// All feature routes are mounted under /api/v1
+// The "v1" prefix lets us deploy a v2 in the future without breaking clients.
 app.use('/api/v1', router)
 
 // ─── 404 Handler ──────────────────────────────────────────────────────────────
-// If a request reaches here, no route matched.
-// We return a clean JSON 404 instead of Express's default HTML error page.
+// Any request that didn't match a route above lands here.
 app.use((_req: Request, res: Response) => {
-  res.status(404).json({
-    success: false,
-    error: 'Route not found',
-  })
+  res.status(404).json({ success: false, error: 'Route not found' })
 })
 
 // ─── Global Error Handler ─────────────────────────────────────────────────────
-// Catches errors thrown anywhere in route handlers above.
-// This MUST be the last app.use() call — Express identifies error middleware
-// by its 4-parameter signature (err, req, res, next).
-// See: src/middleware/errorHandler.ts
+// Catches any error thrown in the routes above.
+// MUST be last — Express identifies error middleware by its 4-parameter signature.
 app.use(errorHandler)

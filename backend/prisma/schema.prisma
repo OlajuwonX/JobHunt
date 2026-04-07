@@ -2,18 +2,15 @@
 // Prisma Schema (prisma/schema.prisma)
 // ─────────────────────────────────────────────────────────────────────────────
 //
-// This file defines the database structure. It's the single source of truth —
-// Prisma reads this and generates:
-//   1. SQL migrations (the actual database tables)
-//   2. TypeScript types (so your code knows the shape of each table)
+// This file is the SINGLE SOURCE OF TRUTH for your database structure.
+// Prisma reads it and generates:
+//   1. SQL migrations  → the actual tables in PostgreSQL
+//   2. TypeScript types → so your code is type-safe when reading/writing data
 //
-// WORKFLOW:
-//   Edit this file → run `npm run db:migrate` → Prisma creates the SQL migration
-//   and applies it to your database
-//
-// AFTER EDITING:
-//   Always run: npm run db:generate
-//   This regenerates the TypeScript types so your IDE/TypeScript is in sync.
+// WORKFLOW (every time you change this file):
+//   npm run db:migrate   → creates + applies a SQL migration
+//   npm run db:generate  → regenerates TypeScript types from schema
+//   npm run db:studio    → opens a browser UI to view your data (TablePlus alternative)
 //
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -23,45 +20,134 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  // DATABASE_URL comes from .env
+  // DATABASE_URL is read from your .env file
   // Neon format: postgresql://user:pass@host.neon.tech/dbname?sslmode=require
   url      = env("DATABASE_URL")
 }
 
-// ─── User ──────────────────────────────────────────────────────────────────────
-// Core authentication table. Keeps auth data separate from profile data
-// so the auth layer stays simple.
+// ─────────────────────────────────────────────────────────────────────────────
+// USER
+// ─────────────────────────────────────────────────────────────────────────────
+// The core identity table. Only stores authentication data.
+// Profile data (skills, location, etc.) is in the Profile table.
+// Why separate? Auth stays simple and doesn't get bloated with preference data.
+// ─────────────────────────────────────────────────────────────────────────────
 model User {
-  id           String   @id @default(cuid()) // cuid = collision-resistant unique ID
+  id           String   @id @default(cuid())
+  // cuid() = collision-resistant unique ID — safer than sequential numbers
+  // (sequential IDs leak how many users you have, e.g. /users/4 means only 4 users)
+
   email        String   @unique
-  passwordHash String   // bcrypt hash — NEVER store plain passwords
-  verified     Boolean  @default(false)  // must verify email before logging in
-  verifyToken  String?  // email verification token (null after verified)
-  resetToken   String?  // password reset token (future feature)
+  passwordHash String
+  // NEVER store plain passwords. We use Argon2 to hash:
+  // "mysecret" → "$argon2id$v=19$m=65536,t=3,p=4$..." (irreversible)
+
+  verified     Boolean  @default(false)
+  // Account starts unverified. User must click email link before they can log in.
+
+  verifyToken     String?
+  // Random token sent in the verification email. Null once account is verified.
+
+  verifyTokenExp  DateTime?
+  // Verification token expires after 24 hours for security.
+
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-  // Relations — one user can have one profile and many applications
+  // ─── Relations ──────────────────────────────────────────────────────────────
+  // These are not columns — they're Prisma's way of expressing SQL foreign keys.
+  // When you do: prisma.user.findUnique({ include: { profile: true } })
+  // Prisma joins the tables for you automatically.
   profile      Profile?
+  sessions     Session[]
   applications Application[]
   atsScores    AtsScore[]
+  authLogs     AuthLog[]
 
-  @@map("users") // the actual PostgreSQL table name
+  @@map("users") // the actual PostgreSQL table name (snake_case convention)
 }
 
-// ─── Profile ───────────────────────────────────────────────────────────────────
-// User's job search preferences. This drives the matching engine —
-// which jobs get shown and how they're scored.
+// ─────────────────────────────────────────────────────────────────────────────
+// SESSION
+// ─────────────────────────────────────────────────────────────────────────────
+// Tracks every active login session for a user.
+//
+// WHY DO WE NEED THIS?
+//   JWTs alone are stateless — once issued, you can't revoke them.
+//   If someone steals a token, they can use it until it expires.
+//
+//   Sessions give us server-side control:
+//   - We can revoke a session instantly (logout, suspicious activity)
+//   - We can show users "you're logged in from Chrome on Windows"
+//   - We detect stolen refresh tokens via rotation (see auth.service.ts)
+//
+// HOW REFRESH TOKEN ROTATION WORKS:
+//   1. User logs in → we create a Session with a hashed refresh token
+//   2. Access token expires (5 min) → frontend sends the refresh token cookie
+//   3. We find the session, verify the token, issue a NEW access + refresh token
+//   4. The old refresh token is marked used/replaced
+//   5. If someone tries to reuse an old token → we detect it → revoke ALL sessions
+// ─────────────────────────────────────────────────────────────────────────────
+model Session {
+  id                 String   @id @default(cuid())
+  userId             String
+  user               User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  refreshTokenHash   String
+  // We NEVER store the raw refresh token. We hash it with SHA-256.
+  // Even if the database is compromised, the attacker can't use the tokens.
+
+  userAgent          String?
+  // e.g. "Mozilla/5.0 (Windows NT 10.0; Win64; x64)..."
+  // Stored to help users identify which device this session belongs to.
+
+  ipAddress          String?
+  // The user's IP address at login time. Used for anomaly detection.
+
+  expiresAt          DateTime
+  // Absolute expiry — after this date the session is dead regardless of activity.
+  // Typically 30 days from creation.
+
+  revoked            Boolean  @default(false)
+  // If true, this session has been invalidated (logout, suspicious activity, etc.)
+
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  @@index([userId])            // fast lookup: "get all sessions for this user"
+  @@index([refreshTokenHash])  // fast lookup: "find session by refresh token hash"
+  @@map("sessions")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// PROFILE
+// ─────────────────────────────────────────────────────────────────────────────
+// User's job search preferences. This is the engine of personalization.
+// The matching algorithm reads this to decide which jobs to surface.
+// ─────────────────────────────────────────────────────────────────────────────
 model Profile {
   id         String   @id @default(cuid())
-  userId     String   @unique  // one profile per user
+  userId     String   @unique
   user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  // onDelete: Cascade — if the user is deleted, their profile is too (no orphans)
 
-  resumeUrl  String?  // private Cloudinary URL (never expose the public URL)
-  roles      String[] // e.g. ["Frontend Engineer", "React Developer"]
-  location   String?  // e.g. "Lagos, Nigeria" or "New York, NY"
-  remotePref String   @default("any") // remote | hybrid | onsite | any
-  skills     String[] // e.g. ["React", "TypeScript", "Node.js"]
+  resumeUrl  String?
+  // Private Cloudinary signed URL. NEVER expose the raw Cloudinary public URL.
+  // Signed URLs expire — we regenerate them on each profile request.
+
+  roles      String[]
+  // What job titles the user is looking for.
+  // e.g. ["Frontend Engineer", "React Developer", "UI Engineer"]
+
+  location   String?
+  // e.g. "Lagos, Nigeria" — used to filter and rank nearby jobs.
+
+  remotePref String   @default("any")
+  // How the user wants to work: "remote" | "hybrid" | "onsite" | "any"
+
+  skills     String[]
+  // Tech skills for ATS scoring.
+  // e.g. ["React", "TypeScript", "Node.js", "PostgreSQL"]
 
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
@@ -69,77 +155,141 @@ model Profile {
   @@map("profiles")
 }
 
-// ─── Job ───────────────────────────────────────────────────────────────────────
-// Stores normalized job listings from all sources.
-// job_hash prevents duplicate jobs from being stored multiple times.
+// ─────────────────────────────────────────────────────────────────────────────
+// JOB
+// ─────────────────────────────────────────────────────────────────────────────
+// Stores normalized job listings aggregated from external sources.
+// All jobs go through a normalizer before being saved here, so the data
+// shape is consistent regardless of whether it came from Greenhouse or Lever.
+// ─────────────────────────────────────────────────────────────────────────────
 model Job {
-  id           String   @id @default(cuid())
+  id      String @id @default(cuid())
 
-  // Hash of (title + company + location) — used to detect duplicates.
-  // If Greenhouse and Lever both list the same job, jobHash will be the same
-  // and we upsert instead of creating two records.
-  jobHash      String   @unique
+  jobHash String @unique
+  // SHA-256 hash of (title + company + location).
+  // DEDUPLICATION: if Greenhouse and Lever both list the same job,
+  // they'll produce the same hash. We upsert (update-or-insert) so we
+  // never store the same job twice.
 
   title        String
   company      String
-  source       String   // "greenhouse" | "lever"
+  source       String
+  // Which platform this job came from:
+  // "greenhouse" | "lever" | "wellfound" | "weworkremotely" | "indeed" | "linkedin"
+
   location     String?
   remote       Boolean  @default(false)
-  description  String   @db.Text  // can be very long
-  requirements String[] // bullet-pointed requirements extracted from description
-  techStack    String[] // tech tags extracted (React, Node.js, PostgreSQL, etc.)
-  applyUrl     String
-  postedAt     DateTime
+  description  String   @db.Text // @db.Text = no length limit (descriptions can be long)
+  requirements String[] // bullet-pointed requirements extracted from the description
+  techStack    String[] // tech tags we extract: ["React", "Node.js", "AWS", ...]
+  applyUrl     String   // the actual application link
+  postedAt     DateTime // when the job was posted on the source platform
   createdAt    DateTime @default(now())
 
   // Relations
   applications Application[]
   atsScores    AtsScore[]
 
-  @@index([source])     // index for filtering by source
-  @@index([postedAt])   // index for sorting by date
+  @@index([source])   // fast filter: show me only Greenhouse jobs
+  @@index([postedAt]) // fast sort: newest first
   @@map("jobs")
 }
 
-// ─── Application ───────────────────────────────────────────────────────────────
-// Tracks which jobs a user has applied to (or saved, rejected, etc.)
-// This is a join table between User and Job with extra metadata.
+// ─────────────────────────────────────────────────────────────────────────────
+// APPLICATION
+// ─────────────────────────────────────────────────────────────────────────────
+// Tracks a user's interaction with a job.
+// This is a "join table" — it connects User ↔ Job with extra data (status).
+// ─────────────────────────────────────────────────────────────────────────────
 model Application {
-  id        String   @id @default(cuid())
-  userId    String
-  jobId     String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  job       Job      @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  id     String @id @default(cuid())
+  userId String
+  jobId  String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  job    Job    @relation(fields: [jobId], references: [id], onDelete: Cascade)
 
-  // Application status — drives the filter and dashboard stats
-  status    String   @default("applied") // applied | saved | rejected | offer
+  status String @default("applied")
+  // Lifecycle states: "applied" → "rejected" | "offer"
+  // Or "saved" (user bookmarked it but hasn't applied yet)
 
   appliedAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  // Prevent a user from having two application records for the same job
   @@unique([userId, jobId])
-  @@index([userId])      // fast lookup of all applications for a user
-  @@index([status])      // fast filter by status
+  // A user can only have ONE application record per job.
+  // If they try to apply twice, Prisma throws a unique constraint error.
+
+  @@index([userId]) // fast: "show me all applications for user X"
+  @@index([status]) // fast: "show me all rejected applications"
   @@map("applications")
 }
 
-// ─── ATS Score ─────────────────────────────────────────────────────────────────
-// Stores the AI-generated ATS match score for a user+job combination.
-// Scoring happens asynchronously (cron job) so we cache the result here
-// instead of calling PuterJS on every job detail request.
+// ─────────────────────────────────────────────────────────────────────────────
+// ATS SCORE
+// ─────────────────────────────────────────────────────────────────────────────
+// Caches the AI-generated resume-to-job match score.
+// ATS = Applicant Tracking System — the software companies use to filter CVs.
+//
+// WHY CACHE IT?
+//   Calling PuterJS (AI) is slow. We run scoring asynchronously via cron jobs
+//   and store the result here. When the user opens a job, we return the cached
+//   score instantly instead of waiting for AI.
+// ─────────────────────────────────────────────────────────────────────────────
 model AtsScore {
-  id          String   @id @default(cuid())
+  id          String @id @default(cuid())
   userId      String
   jobId       String
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  job         Job      @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  user        User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  job         Job    @relation(fields: [jobId], references: [id], onDelete: Cascade)
 
-  score       Int      // 0–100
-  suggestions String[] // actionable tips: "Add TypeScript to your skills section"
+  score       Int
+  // 0–100. Color coding on the frontend:
+  // ≥70 = green (strong match), 40–69 = yellow (partial), <40 = red (weak)
+
+  suggestions String[]
+  // Actionable AI tips, e.g.:
+  // ["Add 'TypeScript' to your skills", "Mention React in your summary"]
 
   scoredAt    DateTime @default(now())
 
   @@unique([userId, jobId]) // one score per user+job pair
   @@map("ats_scores")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// AUTH LOG
+// ─────────────────────────────────────────────────────────────────────────────
+// Immutable audit trail of authentication events.
+// Used for security monitoring, incident response, and anomaly detection.
+// Never delete records from this table — it's an audit log.
+// ─────────────────────────────────────────────────────────────────────────────
+model AuthLog {
+  id        String   @id @default(cuid())
+  userId    String?
+  // Nullable — failed logins before account exists won't have a userId.
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  event     String
+  // Event types:
+  //   "register"          — new account created
+  //   "login_success"     — successful login
+  //   "login_failed"      — wrong password
+  //   "logout"            — user logged out
+  //   "token_refreshed"   — access token refreshed
+  //   "token_reuse"       — SECURITY: refresh token reused after rotation
+  //   "email_verified"    — account verified via email link
+  //   "sessions_revoked"  — all sessions killed (due to token reuse attack)
+
+  ipAddress String?
+  userAgent String?
+
+  metadata  Json?
+  // Optional extra context — e.g. { "reason": "token reuse detected", "revokedCount": 3 }
+
+  createdAt DateTime @default(now())
+
+  @@index([userId])    // fast: "show me all auth events for user X"
+  @@index([event])     // fast: "show me all login_failed events"
+  @@index([createdAt]) // fast: "show me events from the last 24 hours"
+  @@map("auth_logs")
 }

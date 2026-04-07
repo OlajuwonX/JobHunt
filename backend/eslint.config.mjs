@@ -43,9 +43,12 @@ export default tseslint.config(
       // Allow empty async functions — useful for stub controllers before services are built
       '@typescript-eslint/no-empty-function': 'warn',
 
-      // Allow `declare global { namespace Express {} }` — this is the standard TypeScript
-      // pattern for augmenting third-party types (e.g. adding req.user to Express.Request)
+      // Allow `declare global { namespace Express {} }` — standard TS pattern for augmenting
+      // third-party types (e.g. adding req.user to Express.Request)
       '@typescript-eslint/no-namespace': 'off',
+
+      // Allow `var` inside `declare global {}` blocks — TypeScript requires `var` there
+      'no-var': 'off',
 
       // Require explicit return types on exported functions (helps catch bugs early)
       '@typescript-eslint/explicit-function-return-type': 'off', // off — too verbose for now

@@ -20,8 +20,8 @@ const config = {
   // Collect coverage from source files only
   collectCoverageFrom: [
     'src/**/*.ts',
-    '!src/index.ts',    // entry point — nothing to unit test here
-    '!src/types/**',    // type-only files
+    '!src/index.ts', // entry point — nothing to unit test here
+    '!src/types/**', // type-only files
     '!src/**/*.d.ts',
   ],
 

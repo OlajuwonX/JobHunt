@@ -87,7 +87,11 @@ api.interceptors.response.use(
     // Don't refresh if the failing request IS the refresh endpoint
     if (originalRequest.url?.includes('/auth/refresh')) {
       useAuthStore.getState().clearAuth()
-      if (typeof window !== 'undefined') window.location.href = '/auth/login'
+      // Only redirect if not already on an auth page — prevents redirect loops
+      // when AuthProvider's useCurrentUser fires on the login/register pages
+      if (typeof window !== 'undefined' && !window.location.pathname.startsWith('/auth')) {
+        window.location.href = '/auth/login'
+      }
       return Promise.reject(error)
     }
 
@@ -123,7 +127,9 @@ api.interceptors.response.use(
     } catch (refreshError) {
       processQueue(refreshError as AxiosError, null)
       useAuthStore.getState().clearAuth()
-      if (typeof window !== 'undefined') window.location.href = '/auth/login'
+      if (typeof window !== 'undefined' && !window.location.pathname.startsWith('/auth')) {
+        window.location.href = '/auth/login'
+      }
       return Promise.reject(refreshError)
     } finally {
       isRefreshing = false

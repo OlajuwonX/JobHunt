@@ -78,8 +78,10 @@ export const getMe = async (): Promise<User> => {
 
 // ─── Get CSRF Token ───────────────────────────────────────────────────────────
 
-export const initCsrf = async (): Promise<void> => {
+export const initCsrf = async (): Promise<true> => {
   // Just calling this endpoint sets the csrf_token cookie on the browser.
-  // We don't need to handle the response — the api interceptor reads the cookie.
+  // We don't need the response data — the api interceptor reads the cookie.
+  // We return `true` because TanStack Query requires a non-undefined return value.
   await api.get('/auth/csrf-token')
+  return true
 }

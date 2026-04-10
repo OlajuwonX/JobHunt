@@ -1,3 +1,7 @@
+// ─────────────────────────────────────────────────────────────────────────────
+// Prisma Schema (prisma/schema.prisma)
+// ─────────────────────────────────────────────────────────────────────────────
+//
 // This file is the SINGLE SOURCE OF TRUTH for your database structure.
 // Prisma reads it and generates:
 //   1. SQL migrations  → the actual tables in PostgreSQL
@@ -29,26 +33,26 @@ datasource db {
 // Why separate? Auth stays simple and doesn't get bloated with preference data.
 // ─────────────────────────────────────────────────────────────────────────────
 model User {
-  id           String   @id @default(cuid())
+  id String @id @default(cuid())
   // cuid() = collision-resistant unique ID — safer than sequential numbers
   // (sequential IDs leak how many users you have, e.g. /users/4 means only 4 users)
 
-  email        String   @unique
+  email        String @unique
   passwordHash String
   // NEVER store plain passwords. We use Argon2 to hash:
   // "mysecret" → "$argon2id$v=19$m=65536,t=3,p=4$..." (irreversible)
 
-  verified     Boolean  @default(false)
+  verified Boolean @default(false)
   // Account starts unverified. User must click email link before they can log in.
 
-  verifyToken     String?
+  verifyToken String?
   // Random token sent in the verification email. Null once account is verified.
 
-  verifyTokenExp  DateTime?
+  verifyTokenExp DateTime?
   // Verification token expires after 24 hours for security.
 
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   // ─── Relations ──────────────────────────────────────────────────────────────
   // These are not columns — they're Prisma's way of expressing SQL foreign keys.
@@ -85,33 +89,33 @@ model User {
 //   5. If someone tries to reuse an old token → we detect it → revoke ALL sessions
 // ─────────────────────────────────────────────────────────────────────────────
 model Session {
-  id                 String   @id @default(cuid())
-  userId             String
-  user               User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  refreshTokenHash   String
+  refreshTokenHash String
   // We NEVER store the raw refresh token. We hash it with SHA-256.
   // Even if the database is compromised, the attacker can't use the tokens.
 
-  userAgent          String?
+  userAgent String?
   // e.g. "Mozilla/5.0 (Windows NT 10.0; Win64; x64)..."
   // Stored to help users identify which device this session belongs to.
 
-  ipAddress          String?
+  ipAddress String?
   // The user's IP address at login time. Used for anomaly detection.
 
-  expiresAt          DateTime
+  expiresAt DateTime
   // Absolute expiry — after this date the session is dead regardless of activity.
   // Typically 30 days from creation.
 
-  revoked            Boolean  @default(false)
+  revoked Boolean @default(false)
   // If true, this session has been invalidated (logout, suspicious activity, etc.)
 
-  createdAt          DateTime @default(now())
-  updatedAt          DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  @@index([userId])            // fast lookup: "get all sessions for this user"
-  @@index([refreshTokenHash])  // fast lookup: "find session by refresh token hash"
+  @@index([userId]) // fast lookup: "get all sessions for this user"
+  @@index([refreshTokenHash]) // fast lookup: "find session by refresh token hash"
   @@map("sessions")
 }
 
@@ -122,31 +126,31 @@ model Session {
 // The matching algorithm reads this to decide which jobs to surface.
 // ─────────────────────────────────────────────────────────────────────────────
 model Profile {
-  id         String   @id @default(cuid())
-  userId     String   @unique
-  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id     String @id @default(cuid())
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
   // onDelete: Cascade — if the user is deleted, their profile is too (no orphans)
 
-  resumeUrl  String?
+  resumeUrl String?
   // Private Cloudinary signed URL. NEVER expose the raw Cloudinary public URL.
   // Signed URLs expire — we regenerate them on each profile request.
 
-  roles      String[]
+  roles String[]
   // What job titles the user is looking for.
   // e.g. ["Frontend Engineer", "React Developer", "UI Engineer"]
 
-  location   String?
+  location String?
   // e.g. "Lagos, Nigeria" — used to filter and rank nearby jobs.
 
-  remotePref String   @default("any")
+  remotePref String @default("any")
   // How the user wants to work: "remote" | "hybrid" | "onsite" | "any"
 
-  skills     String[]
+  skills String[]
   // Tech skills for ATS scoring.
   // e.g. ["React", "TypeScript", "Node.js", "PostgreSQL"]
 
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@map("profiles")
 }
@@ -159,7 +163,7 @@ model Profile {
 // shape is consistent regardless of whether it came from Greenhouse or Lever.
 // ─────────────────────────────────────────────────────────────────────────────
 model Job {
-  id      String @id @default(cuid())
+  id String @id @default(cuid())
 
   jobHash String @unique
   // SHA-256 hash of (title + company + location).
@@ -167,9 +171,9 @@ model Job {
   // they'll produce the same hash. We upsert (update-or-insert) so we
   // never store the same job twice.
 
-  title        String
-  company      String
-  source       String
+  title   String
+  company String
+  source  String
   // Which platform this job came from:
   // "greenhouse" | "lever" | "wellfound" | "weworkremotely" | "indeed" | "linkedin"
 
@@ -178,7 +182,7 @@ model Job {
   description  String   @db.Text // @db.Text = no length limit (descriptions can be long)
   requirements String[] // bullet-pointed requirements extracted from the description
   techStack    String[] // tech tags we extract: ["React", "Node.js", "AWS", ...]
-  applyUrl     String   // the actual application link
+  applyUrl     String // the actual application link
   postedAt     DateTime // when the job was posted on the source platform
   createdAt    DateTime @default(now())
 
@@ -186,7 +190,7 @@ model Job {
   applications Application[]
   atsScores    AtsScore[]
 
-  @@index([source])   // fast filter: show me only Greenhouse jobs
+  @@index([source]) // fast filter: show me only Greenhouse jobs
   @@index([postedAt]) // fast sort: newest first
   @@map("jobs")
 }
@@ -210,11 +214,10 @@ model Application {
 
   appliedAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-
-  @@unique([userId, jobId])
   // A user can only have ONE application record per job.
   // If they try to apply twice, Prisma throws a unique constraint error.
 
+  @@unique([userId, jobId])
   @@index([userId]) // fast: "show me all applications for user X"
   @@index([status]) // fast: "show me all rejected applications"
   @@map("applications")
@@ -232,13 +235,13 @@ model Application {
 //   score instantly instead of waiting for AI.
 // ─────────────────────────────────────────────────────────────────────────────
 model AtsScore {
-  id          String @id @default(cuid())
-  userId      String
-  jobId       String
-  user        User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  job         Job    @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  id     String @id @default(cuid())
+  userId String
+  jobId  String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  job    Job    @relation(fields: [jobId], references: [id], onDelete: Cascade)
 
-  score       Int
+  score Int
   // 0–100. Color coding on the frontend:
   // ≥70 = green (strong match), 40–69 = yellow (partial), <40 = red (weak)
 
@@ -246,7 +249,7 @@ model AtsScore {
   // Actionable AI tips, e.g.:
   // ["Add 'TypeScript' to your skills", "Mention React in your summary"]
 
-  scoredAt    DateTime @default(now())
+  scoredAt DateTime @default(now())
 
   @@unique([userId, jobId]) // one score per user+job pair
   @@map("ats_scores")
@@ -260,12 +263,12 @@ model AtsScore {
 // Never delete records from this table — it's an audit log.
 // ─────────────────────────────────────────────────────────────────────────────
 model AuthLog {
-  id        String   @id @default(cuid())
-  userId    String?
+  id     String  @id @default(cuid())
+  userId String?
   // Nullable — failed logins before account exists won't have a userId.
-  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  user   User?   @relation(fields: [userId], references: [id], onDelete: SetNull)
 
-  event     String
+  event String
   // Event types:
   //   "register"          — new account created
   //   "login_success"     — successful login
@@ -279,13 +282,13 @@ model AuthLog {
   ipAddress String?
   userAgent String?
 
-  metadata  Json?
+  metadata Json?
   // Optional extra context — e.g. { "reason": "token reuse detected", "revokedCount": 3 }
 
   createdAt DateTime @default(now())
 
-  @@index([userId])    // fast: "show me all auth events for user X"
-  @@index([event])     // fast: "show me all login_failed events"
+  @@index([userId]) // fast: "show me all auth events for user X"
+  @@index([event]) // fast: "show me all login_failed events"
   @@index([createdAt]) // fast: "show me events from the last 24 hours"
   @@map("auth_logs")
 }

@@ -3,23 +3,31 @@
  * Auth Middleware (src/middleware/auth.middleware.ts)
  * ─────────────────────────────────────────────────────────────────────────────
  *
- * Protects routes that require a logged-in user.
+ * PURPOSE:
+ *   Protects routes by verifying a short-lived access token sent via the
+ *   Authorization header. Valid token → user context attached to req.user.
  *
- * HOW THE ACCESS TOKEN FLOW WORKS:
- *   1. User logs in → server returns an accessToken in the JSON response body
- *   2. Frontend stores this accessToken in memory (a React variable/Zustand store)
+ * AUTH FLOW:
+ *   1. User logs in → server returns accessToken in the JSON response body
+ *   2. Frontend stores the token in memory only (Zustand store)
  *      NEVER in localStorage, sessionStorage, or cookies
- *   3. Frontend includes the token in every API request:
- *      Authorization: Bearer <accessToken>
- *   4. This middleware reads the header, verifies the JWT, attaches user to req.user
- *   5. When the accessToken expires (5 min), the frontend calls POST /auth/refresh
- *      which uses the HttpOnly refresh token cookie to get a new accessToken
+ *   3. Every protected request includes: Authorization: Bearer <accessToken>
+ *   4. This middleware verifies the token and attaches req.user
+ *   5. When the token expires (5 min), the frontend silently calls
+ *      POST /auth/refresh — the HttpOnly refresh token cookie handles it
  *
- * WHY NOT USE A COOKIE FOR THE ACCESS TOKEN?
- *   Cookies are automatically sent with every request — including cross-site ones.
- *   Storing the access token in memory and sending it as a header means:
- *   - XSS attacks can't steal it (no localStorage)
- *   - CSRF attacks can't use it (not automatically sent)
+ * SECURITY PRINCIPLES:
+ *   • Do NOT trust the client blindly — verify signature, expiry, AND token type
+ *   • Do NOT leak auth internals in error responses — all failures return a
+ *     generic "Unauthorized" to the client; real reasons are logged server-side
+ *   • Token type check prevents accidental misuse of other token types as
+ *     access tokens (e.g. if a verify token were somehow extracted and used)
+ *
+ * WHY BEARER HEADER, NOT A COOKIE?
+ *   Cookies are sent automatically with every request — including cross-site ones.
+ *   Sending the access token as a header means:
+ *   • XSS can't steal it (not in localStorage)
+ *   • CSRF can't use it (not automatically sent)
  *
  * USAGE:
  *   router.get('/profile', requireAuth, getProfile)
@@ -29,19 +37,21 @@
  */
 
 import { Request, Response, NextFunction } from 'express'
+import jwt from 'jsonwebtoken'
 import { verifyAccessToken } from '../utils/token'
 import { AppError } from './errorHandler'
-import jwt from 'jsonwebtoken'
 
-// ─── Type Augmentation ─────────────────────────────────────────────────────────
-// Adds the `user` property to Express's Request type globally.
-// Without this, TypeScript would complain that req.user doesn't exist.
+// ─── Type Augmentation ────────────────────────────────────────────────────────
+// Adds `user` to Express's Request type globally so TypeScript knows it exists.
+// sessionId is optional — it will be populated once we embed it in the JWT payload
+// (currently omitted since session is created after token generation; future work).
 declare global {
   namespace Express {
     interface Request {
       user?: {
         id: string
         email: string
+        sessionId?: string // for per-session revocation checks in controllers
       }
     }
   }
@@ -51,47 +61,66 @@ declare global {
  * Middleware that verifies the JWT access token from the Authorization header.
  * Attaches decoded user data to req.user so controllers can access it.
  *
- * Expects the header in this format:
- *   Authorization: Bearer eyJhbGciOiJIUzI1NiJ9.eyJpZCI6...
+ * Expects: Authorization: Bearer eyJhbGciOiJIUzI1NiJ9.eyJpZCI6...
  *
- * @throws AppError(401) if token is missing, invalid, or expired
+ * Failures are logged internally with the real reason; the client only ever
+ * receives a generic 401 so we don't leak implementation details.
+ *
+ * @throws AppError(401) if token is missing, malformed, invalid, or expired
  */
 export const requireAuth = (req: Request, _res: Response, next: NextFunction): void => {
-  // ── Extract the token from the Authorization header ─────────────────────────
-  const authHeader = req.headers.authorization
-
-  // The header must exist and start with "Bearer "
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    throw new AppError('Authentication required. Please log in.', 401)
-  }
-
-  // Extract just the token part (everything after "Bearer ")
-  const token = authHeader.substring(7) // "Bearer ".length === 7
-
-  if (!token) {
-    throw new AppError('Authentication token is missing.', 401)
-  }
-
-  // ── Verify the token ────────────────────────────────────────────────────────
   try {
-    // verifyAccessToken checks:
-    //   1. Signature is valid (wasn't tampered with using our JWT_SECRET)
-    //   2. Token hasn't expired (exp claim is in the future)
+    // ── 1. Extract the Authorization header ─────────────────────────────────
+    const authHeader = req.headers.authorization
+
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      // Log nothing here — missing header is normal for unauthenticated requests
+      throw new AppError('Unauthorized', 401)
+    }
+
+    // Extract just the token (everything after "Bearer ")
+    const token = authHeader.substring(7) // "Bearer ".length === 7
+
+    if (!token) {
+      console.warn('[requireAuth] Bearer prefix present but token body is empty')
+      throw new AppError('Unauthorized', 401)
+    }
+
+    // ── 2. Verify signature + expiry ─────────────────────────────────────────
+    // verifyAccessToken throws JsonWebTokenError or TokenExpiredError on failure
     const decoded = verifyAccessToken(token)
 
-    // Attach the user data to the request object
-    // All downstream controllers can read: req.user.id, req.user.email
+    // ── 3. Enforce token type ─────────────────────────────────────────────────
+    // Access tokens embed type: 'access'. This guards against other token types
+    // (e.g. a leaked email-verify token) being passed as access tokens.
+    if (decoded.type !== 'access') {
+      console.warn(`[requireAuth] Wrong token type presented: "${decoded.type}"`)
+      throw new AppError('Unauthorized', 401)
+    }
+
+    // ── 4. Attach minimal user context ───────────────────────────────────────
     req.user = {
       id: decoded.id,
       email: decoded.email,
+      sessionId: decoded.sessionId, // undefined until embedded in JWT; typed for future use
     }
 
     next()
   } catch (err) {
+    // ── 5. Handle JWT errors without leaking details to the client ────────────
     if (err instanceof jwt.TokenExpiredError) {
-      // The frontend should automatically call POST /auth/refresh when it gets this error
-      throw new AppError('Access token expired. Please refresh your session.', 401)
+      // Log server-side so we can monitor expiry patterns / clock skew
+      console.info(`[requireAuth] Token expired for request: ${req.method} ${req.path}`)
+      return next(new AppError('Unauthorized', 401))
     }
-    throw new AppError('Invalid authentication token. Please log in again.', 401)
+
+    if (err instanceof jwt.JsonWebTokenError) {
+      // Log server-side — malformed tokens can indicate probing or attacks
+      console.warn(`[requireAuth] Invalid JWT: ${err.message} — ${req.method} ${req.path}`)
+      return next(new AppError('Unauthorized', 401))
+    }
+
+    // Re-throw AppErrors (missing header, wrong type) and any unexpected errors
+    return next(err)
   }
 }

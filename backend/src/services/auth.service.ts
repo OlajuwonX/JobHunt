@@ -232,7 +232,7 @@ export const login = async (
   }
 
   // ── Step 4: Generate tokens ────────────────────────────────────────────────
-  const accessToken = generateAccessToken({ id: user.id, email: user.email })
+  const accessToken = generateAccessToken({ id: user.id, email: user.email, type: 'access' })
   const refreshToken = generateRefreshToken()
   const csrfToken = generateCsrfToken()
 
@@ -377,7 +377,7 @@ export const refresh = async (
   })
 
   // Generate brand new tokens
-  const newAccessToken = generateAccessToken({ id: session.userId, email: session.user.email })
+  const newAccessToken = generateAccessToken({ id: session.userId, email: session.user.email, type: 'access' })
   const newRefreshToken = generateRefreshToken()
   const newCsrfToken = generateCsrfToken()
   const newRefreshTokenHash = hashRefreshToken(newRefreshToken)

@@ -73,12 +73,12 @@ export const csrfProtection = (req: Request, _res: Response, next: NextFunction)
 
   // Both must be present
   if (!cookieToken || !headerToken) {
-    throw new AppError('CSRF token missing. Please refresh the page and try again.', 403)
+    throw new AppError('Forbidden', 403)
   }
 
   // Both must match — if they don't, the request is suspicious
   if (cookieToken !== headerToken) {
-    throw new AppError('CSRF token mismatch. Request rejected.', 403)
+    throw new AppError('Forbidden', 403)
   }
 
   // All good — pass to the actual route handler
@@ -99,7 +99,7 @@ export const setCsrfCookie = (res: Response, csrfToken: string): void => {
   res.cookie('csrf_token', csrfToken, {
     httpOnly: false, // MUST be false — frontend JavaScript needs to read this
     secure: process.env.NODE_ENV === 'production', // HTTPS only in production
-    sameSite: 'strict', // only sent on same-site requests
+    sameSite: 'lax', // only sent on same-site requests
     maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days (matches refresh token lifetime)
     path: '/',
   })

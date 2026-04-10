@@ -34,8 +34,10 @@ import { randomBytes } from 'crypto'
 
 // The data we embed inside the JWT (the "payload")
 export interface AccessTokenPayload {
-  id: string // user's database ID
-  email: string // user's email address
+  id: string        // user's database ID
+  email: string     // user's email address
+  type: 'access'    // token type guard — prevents refresh/verify tokens from being misused as access tokens
+  sessionId?: string // the session this token belongs to — useful for per-session revocation
 }
 
 // The full decoded JWT (payload + JWT standard claims)

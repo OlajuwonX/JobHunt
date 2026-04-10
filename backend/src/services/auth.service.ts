@@ -112,9 +112,10 @@ export const register = async (
   })
 
   if (existingUser) {
-    // Don't reveal whether the email exists or not in a timing-safe way.
-    // We throw 409 Conflict — the email is taken.
-    throw new AppError('An account with this email already exists.', 409)
+    // Log internally but return a generic message — revealing "email already exists"
+    // lets an attacker enumerate which emails are registered in our system.
+    console.warn(`[register] Duplicate registration attempt for email: ${email.toLowerCase().trim()}`)
+    throw new AppError('Registration failed. Please check your details and try again.', 409)
   }
 
   // ── Step 2: Hash the password ──────────────────────────────────────────────
@@ -225,10 +226,10 @@ export const login = async (
 
   // ── Step 3: Check email verification ──────────────────────────────────────
   if (!user.verified) {
-    throw new AppError(
-      'Please verify your email before logging in. Check your inbox for the verification link.',
-      403
-    )
+    // Log internally — returning "email not verified" confirms the email exists
+    // to an attacker probing the login endpoint.
+    console.warn(`[login] Unverified account login attempt: ${user.email}`)
+    throw new AppError('Unauthorized', 401)
   }
 
   // ── Step 4: Generate tokens ────────────────────────────────────────────────
@@ -354,10 +355,10 @@ export const refresh = async (
       metadata: { reason: 'all sessions revoked due to token reuse' },
     })
 
-    throw new AppError(
-      'Security alert: suspicious activity detected. All sessions have been terminated. Please log in again.',
-      401
-    )
+    // Log internally — revealing "token reuse detected" tells the attacker that
+    // our rotation detection fired, which could help them refine their attack.
+    console.warn(`[refresh] Token reuse detected — all sessions revoked for userId: ${session.userId}`)
+    throw new AppError('Unauthorized', 401)
   }
 
   // Check if the session has expired (absolute lifetime check)

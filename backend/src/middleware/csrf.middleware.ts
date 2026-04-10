@@ -30,17 +30,24 @@
  *   Any request that CHANGES data: POST, PUT, PATCH, DELETE
  *   GET requests are safe (read-only, no state change)
  *
+ * TIMING-SAFE COMPARISON:
+ *   We use crypto.timingSafeEqual instead of simple === string comparison.
+ *   A naive string comparison short-circuits on the first mismatched character,
+ *   which can leak the token value character-by-character via timing measurements.
+ *   timingSafeEqual always takes the same time regardless of where the mismatch is.
+ *
  * ─────────────────────────────────────────────────────────────────────────────
  */
 
 import { Request, Response, NextFunction } from 'express'
+import crypto from 'crypto'
 import { AppError } from './errorHandler'
 
 // Methods that change server state — these require CSRF validation
 const CSRF_PROTECTED_METHODS = ['POST', 'PUT', 'PATCH', 'DELETE']
 
-// Routes exempt from CSRF (GET /csrf-token itself, and the refresh endpoint
-// which uses its own token-based security)
+// Routes exempt from CSRF. We use startsWith() so trailing slashes and
+// sub-paths are also matched (e.g. /api/v1/auth/csrf-token/ still passes).
 const CSRF_EXEMPT_PATHS = ['/api/v1/auth/csrf-token']
 
 /**
@@ -51,15 +58,17 @@ const CSRF_EXEMPT_PATHS = ['/api/v1/auth/csrf-token']
  *   - Header:  X-CSRF-Token: <same value>  (sent by frontend on every mutation)
  *
  * Rejects the request if the header is missing or doesn't match the cookie.
+ * Real failure reasons are logged server-side; client receives only "Forbidden".
  */
 export const csrfProtection = (req: Request, _res: Response, next: NextFunction): void => {
-  // Skip safe HTTP methods (GET, HEAD, OPTIONS)
+  // Skip safe HTTP methods (GET, HEAD, OPTIONS) — read-only, no state change
   if (!CSRF_PROTECTED_METHODS.includes(req.method)) {
     return next()
   }
 
   // Skip explicitly exempt paths
-  if (CSRF_EXEMPT_PATHS.includes(req.path)) {
+  const isExempt = CSRF_EXEMPT_PATHS.some((path) => req.path.startsWith(path))
+  if (isExempt) {
     return next()
   }
 
@@ -73,11 +82,25 @@ export const csrfProtection = (req: Request, _res: Response, next: NextFunction)
 
   // Both must be present
   if (!cookieToken || !headerToken) {
+    console.warn(
+      `[csrfProtection] Missing CSRF token — cookie: ${!!cookieToken}, header: ${!!headerToken} — ${req.method} ${req.path}`
+    )
     throw new AppError('Forbidden', 403)
   }
 
-  // Both must match — if they don't, the request is suspicious
-  if (cookieToken !== headerToken) {
+  // Timing-safe comparison: prevents token leakage via response-time measurements.
+  // Both buffers must be the same length first — mismatched lengths also mean mismatch.
+  const cookieBuffer = Buffer.from(cookieToken)
+  const headerBuffer = Buffer.from(headerToken)
+
+  if (
+    cookieBuffer.length !== headerBuffer.length ||
+    !crypto.timingSafeEqual(cookieBuffer, headerBuffer)
+  ) {
+    // Log server-side — mismatched tokens may indicate a CSRF probe or misconfigured frontend
+    console.warn(
+      `[csrfProtection] CSRF token mismatch — ${req.method} ${req.path} — ip: ${req.ip}`
+    )
     throw new AppError('Forbidden', 403)
   }
 

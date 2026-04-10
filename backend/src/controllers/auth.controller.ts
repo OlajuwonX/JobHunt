@@ -184,7 +184,9 @@ export const refresh = asyncHandler(async (req: Request, res: Response) => {
   const rawRefreshToken = req.cookies?.refresh_token as string | undefined
 
   if (!rawRefreshToken) {
-    throw new AppError('No refresh token found. Please log in.', 401)
+    // Log internally — "no refresh token" reveals our cookie-based mechanism to the client
+    console.warn(`[refresh] Missing refresh_token cookie — ${req.method} ${req.path} — ip: ${req.ip}`)
+    throw new AppError('Unauthorized', 401)
   }
 
   // Rotate the refresh token and issue new access token

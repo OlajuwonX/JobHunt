@@ -43,7 +43,7 @@
  */
 
 import prisma from '../utils/prisma'
-import { hashPassword, verifyPassword, hashRefreshToken } from '../utils/hash'
+import { hashPassword, verifyPassword, hashRefreshToken, hashToken } from '../utils/hash'
 import {
   generateAccessToken,
   generateRefreshToken,
@@ -71,6 +71,13 @@ export interface AuthResult {
   csrfToken: string // stored in readable cookie by the controller
   user: SafeUser
 }
+
+// ─── Constants ────────────────────────────────────────────────────────────────
+
+// Session lifetime in milliseconds — used in login, refresh, and logout.
+// Defined once here so changing it (e.g. 7 days vs 30 days) only requires
+// one edit, not hunting through the file.
+const SESSION_LIFETIME_MS = 30 * 24 * 60 * 60 * 1000 // 30 days
 
 // ─── Cookie Configuration ────────────────────────────────────────────────────
 // Centralised cookie options so every place we set the refresh token cookie
@@ -104,17 +111,20 @@ export const register = async (
   ipAddress?: string,
   userAgent?: string
 ): Promise<{ message: string }> => {
+  // Normalize once — used in both the duplicate check and the DB insert
+  const normalizedEmail = email.toLowerCase().trim()
+
   // ── Step 1: Check for duplicate email ─────────────────────────────────────
   // We check BEFORE hashing to avoid doing expensive Argon2 work unnecessarily.
   const existingUser = await prisma.user.findUnique({
-    where: { email: email.toLowerCase().trim() },
+    where: { email: normalizedEmail },
     select: { id: true }, // only fetch what we need (performance)
   })
 
   if (existingUser) {
     // Log internally but return a generic message — revealing "email already exists"
     // lets an attacker enumerate which emails are registered in our system.
-    console.warn(`[register] Duplicate registration attempt for email: ${email.toLowerCase().trim()}`)
+    console.warn(`[register] Duplicate registration attempt for email: ${normalizedEmail}`)
     throw new AppError('Registration failed. Please check your details and try again.', 409)
   }
 
@@ -123,8 +133,10 @@ export const register = async (
   const passwordHash = await hashPassword(password)
 
   // ── Step 3: Generate verification token ────────────────────────────────────
-  // A random 256-bit token sent in the verification email link.
+  // Raw token is sent to the user via email. We store only the hash in the DB,
+  // so a database breach can't be used to activate accounts directly.
   const verifyToken = generateVerifyToken()
+  const verifyTokenHash = hashToken(verifyToken)
 
   // Token expires in 24 hours from now
   const verifyTokenExp = new Date(Date.now() + 24 * 60 * 60 * 1000)
@@ -132,9 +144,9 @@ export const register = async (
   // ── Step 4: Save user ──────────────────────────────────────────────────────
   const user = await prisma.user.create({
     data: {
-      email: email.toLowerCase().trim(), // always store email in lowercase
+      email: normalizedEmail,
       passwordHash,
-      verifyToken,
+      verifyToken: verifyTokenHash, // store the hash — raw token goes to user via email only
       verifyTokenExp,
       // Also create an empty profile for this user in the same transaction
       profile: {
@@ -190,9 +202,11 @@ export const login = async (
   ipAddress?: string,
   userAgent?: string
 ): Promise<AuthResult> => {
+  const normalizedEmail = email.toLowerCase().trim()
+
   // ── Step 1: Find user ──────────────────────────────────────────────────────
   const user = await prisma.user.findUnique({
-    where: { email: email.toLowerCase().trim() },
+    where: { email: normalizedEmail },
     // Select exactly what we need — never over-fetch
     select: {
       id: true,
@@ -241,8 +255,8 @@ export const login = async (
   // We store the HASH of the refresh token — never the raw token.
   const refreshTokenHash = hashRefreshToken(refreshToken)
 
-  // Session expires in 30 days (absolute maximum lifetime)
-  const sessionExpiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
+  // Session expires after SESSION_LIFETIME_MS (defined at top of file)
+  const sessionExpiresAt = new Date(Date.now() + SESSION_LIFETIME_MS)
 
   await prisma.session.create({
     data: {
@@ -384,7 +398,7 @@ export const refresh = async (
   const newRefreshTokenHash = hashRefreshToken(newRefreshToken)
 
   // Create a new session with the new refresh token
-  const sessionExpiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
+  const sessionExpiresAt = new Date(Date.now() + SESSION_LIFETIME_MS)
   await prisma.session.create({
     data: {
       userId: session.userId,
@@ -464,10 +478,14 @@ export const logout = async (
  * @throws AppError(400) if account is already verified
  */
 export const verifyEmail = async (token: string): Promise<{ message: string }> => {
-  // Find user by token — also check it hasn't expired
+  // Hash the incoming token before lookup — we store only hashes in the DB,
+  // same as with refresh tokens. Raw token never touches the database.
+  const tokenHash = hashToken(token)
+
+  // Find user by hashed token — also check it hasn't expired
   const user = await prisma.user.findFirst({
     where: {
-      verifyToken: token,
+      verifyToken: tokenHash,
       verifyTokenExp: { gt: new Date() }, // token must not be expired
     },
     select: { id: true, verified: true, email: true },

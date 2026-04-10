@@ -13,15 +13,13 @@
  *
  * WHY A SINGLETON?
  *   Creating a new PrismaClient() opens a database connection.
- *   If you did `new PrismaClient()` in every file, you'd open hundreds
- *   of connections and hit the database connection limit very quickly.
+ *   If you did `new PrismaClient()` in every file, you'd open hundreds of connections and hit the database connection limit very quickly.
  *
  *   The singleton pattern ensures we create ONE client for the whole app
  *   and reuse it everywhere.
  *
  * WHY THE globalThis TRICK?
- *   In development, Next.js (and nodemon) hot-reload the server when files
- *   change. Each reload would create a new PrismaClient, leaking connections.
+ *   In development, Next.js (and nodemon) hot-reload the server when files change. Each reload would create a new PrismaClient, leaking connections.
  *   Storing it on globalThis survives hot reloads — the same client is reused.
  *
  * USAGE:

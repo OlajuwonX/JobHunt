@@ -11,11 +11,12 @@
  *    attacks are expensive even with GPUs.
  *    Output: "$argon2id$v=19$m=65536,t=3,p=4$..." (irreversible)
  *
- * 2. REFRESH TOKENS → SHA-256 (via Node.js crypto)
- *    Refresh tokens are already random enough (256-bit entropy from crypto).
+ * 2. TOKENS → SHA-256 (via Node.js crypto)
+ *    Refresh tokens and email verify tokens are already random (256-bit entropy).
  *    SHA-256 is fast and sufficient here — we just need to prevent the
  *    database from exposing usable tokens if it's ever compromised.
  *    Output: "a3f5c2..." (hex string, 64 chars)
+ *    Functions: hashRefreshToken (refresh tokens), hashToken (general purpose)
  *
  * 3. JOB HASH → SHA-256
  *    Used for deduplication. Same job from two sources = same hash.
@@ -81,6 +82,18 @@ export const verifyPassword = async (hash: string, password: string): Promise<bo
  * // "a3f5c2d8e1b7..." (64 hex chars)
  */
 export const hashRefreshToken = (token: string): string => {
+  return createHash('sha256').update(token).digest('hex')
+}
+
+/**
+ * General-purpose SHA-256 token hash.
+ * Used for any security token that needs to be stored hashed in the DB
+ * (e.g. email verification tokens, password reset tokens).
+ *
+ * Same rationale as hashRefreshToken — the raw token is sent to the user,
+ * only the hash is stored, so a DB breach can't be used to activate accounts.
+ */
+export const hashToken = (token: string): string => {
   return createHash('sha256').update(token).digest('hex')
 }
 

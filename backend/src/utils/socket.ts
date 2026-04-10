@@ -43,7 +43,7 @@ export const createSocketServer = (httpServer: HTTPServer): SocketIOServer => {
   })
 
   io.on('connection', (socket: Socket) => {
-    console.log(`⚡ Socket connected: ${socket.id}`)
+    console.log(`Socket connected: ${socket.id}`)
 
     // When the frontend connects, it should emit 'join' with the userId
     // so we can route events to the right user.
@@ -57,7 +57,7 @@ export const createSocketServer = (httpServer: HTTPServer): SocketIOServer => {
     })
 
     socket.on('disconnect', () => {
-      console.log(`⚡ Socket disconnected: ${socket.id}`)
+      console.log(`Socket disconnected: ${socket.id}`)
     })
   })
 

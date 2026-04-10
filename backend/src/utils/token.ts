@@ -8,7 +8,7 @@
  * ┌─────────────────┬──────────────────────────────────────────────────────────┐
  * │ Token Type      │ Details                                                  │
  * ├─────────────────┼──────────────────────────────────────────────────────────┤
- * │ Access Token    │ JWT, expires in 5 min, stored in MEMORY (never cookie)   │
+ * │ Access Token    │ JWT, expires in 5 min, stored in MEMORY (never cookie)   
  * │                 │ Contains: userId, email                                  │
  * │                 │ Used by: frontend to call protected API endpoints         │
  * ├─────────────────┼──────────────────────────────────────────────────────────┤

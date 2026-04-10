@@ -8,7 +8,7 @@
  * ┌─────────────────┬──────────────────────────────────────────────────────────┐
  * │ Token Type      │ Details                                                  │
  * ├─────────────────┼──────────────────────────────────────────────────────────┤
- * │ Access Token    │ JWT, expires in 5 min, stored in MEMORY (never cookie)   
+ * │ Access Token    │ JWT, expires in 5 min, stored in MEMORY (never cookie)
  * │                 │ Contains: userId, email                                  │
  * │                 │ Used by: frontend to call protected API endpoints         │
  * ├─────────────────┼──────────────────────────────────────────────────────────┤
@@ -34,9 +34,9 @@ import { randomBytes } from 'crypto'
 
 // The data we embed inside the JWT (the "payload")
 export interface AccessTokenPayload {
-  id: string        // user's database ID
-  email: string     // user's email address
-  type: 'access'    // token type guard — prevents refresh/verify tokens from being misused as access tokens
+  id: string // user's database ID
+  email: string // user's email address
+  type: 'access' // token type guard — prevents refresh/verify tokens from being misused as access tokens
   sessionId?: string // the session this token belongs to — useful for per-session revocation
 }
 

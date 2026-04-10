@@ -185,7 +185,9 @@ export const refresh = asyncHandler(async (req: Request, res: Response) => {
 
   if (!rawRefreshToken) {
     // Log internally — "no refresh token" reveals our cookie-based mechanism to the client
-    console.warn(`[refresh] Missing refresh_token cookie — ${req.method} ${req.path} — ip: ${req.ip}`)
+    console.warn(
+      `[refresh] Missing refresh_token cookie — ${req.method} ${req.path} — ip: ${req.ip}`
+    )
     throw new AppError('Unauthorized', 401)
   }
 

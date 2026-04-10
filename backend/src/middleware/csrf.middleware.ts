@@ -98,9 +98,7 @@ export const csrfProtection = (req: Request, _res: Response, next: NextFunction)
     !crypto.timingSafeEqual(cookieBuffer, headerBuffer)
   ) {
     // Log server-side — mismatched tokens may indicate a CSRF probe or misconfigured frontend
-    console.warn(
-      `[csrfProtection] CSRF token mismatch — ${req.method} ${req.path} — ip: ${req.ip}`
-    )
+    console.warn(`[csrfProtection] CSRF token mismatch — ${req.method} ${req.path} — ip: ${req.ip}`)
     throw new AppError('Forbidden', 403)
   }
 

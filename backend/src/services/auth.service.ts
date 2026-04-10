@@ -372,7 +372,9 @@ export const refresh = async (
 
     // Log internally — revealing "token reuse detected" tells the attacker that
     // our rotation detection fired, which could help them refine their attack.
-    console.warn(`[refresh] Token reuse detected — all sessions revoked for userId: ${session.userId}`)
+    console.warn(
+      `[refresh] Token reuse detected — all sessions revoked for userId: ${session.userId}`
+    )
     throw new AppError('Unauthorized', 401)
   }
 
@@ -393,7 +395,11 @@ export const refresh = async (
   })
 
   // Generate brand new tokens
-  const newAccessToken = generateAccessToken({ id: session.userId, email: session.user.email, type: 'access' })
+  const newAccessToken = generateAccessToken({
+    id: session.userId,
+    email: session.user.email,
+    type: 'access',
+  })
   const newRefreshToken = generateRefreshToken()
   const newCsrfToken = generateCsrfToken()
   const newRefreshTokenHash = hashRefreshToken(newRefreshToken)

@@ -42,6 +42,7 @@
  * ─────────────────────────────────────────────────────────────────────────────
  */
 
+import { Prisma } from '@prisma/client'
 import prisma from '../utils/prisma'
 import { hashPassword, verifyPassword, hashRefreshToken, hashToken } from '../utils/hash'
 import {
@@ -571,7 +572,10 @@ const logAuthEvent = async ({
         event,
         ipAddress: ipAddress ?? null,
         userAgent: userAgent ?? null,
-        metadata: metadata ?? null,
+        // Prisma requires Prisma.JsonNull (not plain null) to store null in a
+        // nullable JSON column. Record<string, unknown> must be cast to
+        // InputJsonValue because Prisma's type doesn't accept the generic form.
+        metadata: metadata ? (metadata as Prisma.InputJsonValue) : Prisma.JsonNull,
       },
     })
   } catch (err) {

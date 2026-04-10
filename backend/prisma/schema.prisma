@@ -93,9 +93,10 @@ model Session {
   userId String
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  refreshTokenHash String
+  refreshTokenHash String   @unique
   // We NEVER store the raw refresh token. We hash it with SHA-256.
   // Even if the database is compromised, the attacker can't use the tokens.
+  // @unique: one hash = one session. Also enables findUnique() in the service.
 
   userAgent String?
   // e.g. "Mozilla/5.0 (Windows NT 10.0; Win64; x64)..."
@@ -115,7 +116,7 @@ model Session {
   updatedAt DateTime @updatedAt
 
   @@index([userId]) // fast lookup: "get all sessions for this user"
-  @@index([refreshTokenHash]) // fast lookup: "find session by refresh token hash"
+  // @@index([refreshTokenHash]) removed — @unique on the field already creates an index
   @@map("sessions")
 }
 

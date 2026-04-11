@@ -1,17 +1,5 @@
 'use client'
 
-/**
- * RegisterForm (src/features/auth/components/RegisterForm.tsx)
- *
- * Handles the registration UI: form, validation, submission.
- * Uses TanStack Query mutation (via useRegister hook) for the API call.
- * Uses Zod for client-side validation before any network request is made.
- *
- * HONEYPOT: The `website` field is hidden with CSS. Real users never fill it.
- * Bots fill all fields. If `website` has a value, the backend silently ignores
- * the registration (returns fake success).
- */
-
 import { useState } from 'react'
 import Link from 'next/link'
 import { useForm } from 'react-hook-form'
@@ -52,7 +40,6 @@ export function RegisterForm() {
       </div>
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
-        {/* ── Honeypot (hidden from real users, traps bots) ──────────────── */}
         <input
           type="text"
           tabIndex={-1}
@@ -61,8 +48,6 @@ export function RegisterForm() {
           className="absolute left-[-9999px] top-[-9999px] opacity-0"
           {...field('website' as never)}
         />
-
-        {/* ── Email ─────────────────────────────────────────────────────── */}
         <div className="space-y-1">
           <label htmlFor="email" className="text-sm font-medium text-foreground">
             Email address
@@ -71,7 +56,7 @@ export function RegisterForm() {
             id="email"
             type="email"
             autoComplete="email"
-            placeholder="you@example.com"
+            placeholder="johndoe@example.com"
             data-testid="register-email"
             className={cn(
               'w-full rounded-xl border bg-background px-3 py-2.5 text-sm',
@@ -84,8 +69,6 @@ export function RegisterForm() {
           />
           {errors.email && <p className="text-xs text-destructive">{errors.email.message}</p>}
         </div>
-
-        {/* ── Password ──────────────────────────────────────────────────── */}
         <div className="space-y-1">
           <label htmlFor="password" className="text-sm font-medium text-foreground">
             Password
@@ -117,8 +100,6 @@ export function RegisterForm() {
           </div>
           {errors.password && <p className="text-xs text-destructive">{errors.password.message}</p>}
         </div>
-
-        {/* ── Confirm Password ──────────────────────────────────────────── */}
         <div className="space-y-1">
           <label htmlFor="confirmPassword" className="text-sm font-medium text-foreground">
             Confirm password
@@ -152,8 +133,6 @@ export function RegisterForm() {
             <p className="text-xs text-destructive">{errors.confirmPassword.message}</p>
           )}
         </div>
-
-        {/* ── Submit ────────────────────────────────────────────────────── */}
         <button
           type="submit"
           disabled={isPending}

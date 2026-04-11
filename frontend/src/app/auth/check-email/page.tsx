@@ -1,11 +1,3 @@
-/**
- * Check Email Page (src/app/auth/check-email/page.tsx)
- *
- * Shown after successful registration.
- * Tells the user to go check their inbox.
- * Pure server component — no interactivity needed.
- */
-
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { MailCheck } from 'lucide-react'

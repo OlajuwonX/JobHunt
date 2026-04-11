@@ -1,17 +1,5 @@
 'use client'
 
-/**
- * ThemeProvider (src/components/providers/ThemeProvider.tsx)
- *
- * Wraps the app with next-themes for dark/light mode.
- * Reads system preference on first load.
- * Allows manual toggle that persists in localStorage.
- *
- * USAGE in components:
- *   const { theme, setTheme } = useTheme()
- *   setTheme('dark')   // or 'light' or 'system'
- */
-
 import { ThemeProvider as NextThemesProvider } from 'next-themes'
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {

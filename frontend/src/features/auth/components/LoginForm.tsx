@@ -1,9 +1,5 @@
 'use client'
 
-/**
- * LoginForm (src/features/auth/components/LoginForm.tsx)
- */
-
 import { useState } from 'react'
 import Link from 'next/link'
 import { useForm } from 'react-hook-form'
@@ -43,7 +39,6 @@ export function LoginForm() {
       </div>
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
-        {/* Honeypot */}
         <input
           type="text"
           tabIndex={-1}
@@ -52,8 +47,6 @@ export function LoginForm() {
           className="absolute left-[-9999px] top-[-9999px] opacity-0"
           {...field('website' as never)}
         />
-
-        {/* Email */}
         <div className="space-y-1">
           <label htmlFor="email" className="text-sm font-medium text-foreground">
             Email address
@@ -75,8 +68,6 @@ export function LoginForm() {
           />
           {errors.email && <p className="text-xs text-destructive">{errors.email.message}</p>}
         </div>
-
-        {/* Password */}
         <div className="space-y-1">
           <div className="flex items-center justify-between">
             <label htmlFor="password" className="text-sm font-medium text-foreground">
@@ -116,8 +107,6 @@ export function LoginForm() {
           </div>
           {errors.password && <p className="text-xs text-destructive">{errors.password.message}</p>}
         </div>
-
-        {/* Submit */}
         <button
           type="submit"
           disabled={isPending}

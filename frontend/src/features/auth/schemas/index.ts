@@ -1,12 +1,3 @@
-/**
- * Auth Zod Schemas (src/features/auth/schemas/index.ts)
- *
- * Zod validates form data on the CLIENT before sending to the API.
- * This gives instant feedback without waiting for a network request.
- *
- * The backend ALSO validates with Zod independently — never trust the frontend.
- */
-
 import { z } from 'zod'
 
 export const registerSchema = z

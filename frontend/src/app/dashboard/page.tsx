@@ -1,11 +1,3 @@
-/**
- * Dashboard Page (src/app/dashboard/page.tsx)
- *
- * Protected page — only accessible when logged in.
- * Full implementation in Phase 3.
- * Stub shown for now so login redirect works.
- */
-
 export default function DashboardPage() {
   return (
     <main className="flex min-h-screen flex-col items-center justify-center bg-background">

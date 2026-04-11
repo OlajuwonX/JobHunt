@@ -1,17 +1,5 @@
 'use client'
 
-/**
- * Verify Email Page (src/app/auth/verify/page.tsx)
- *
- * The verification link in the email points here:
- *   https://jobhunt.vercel.app/auth/verify?token=<token>
- *
- * On mount: reads ?token from the URL and calls the backend to activate the account.
- * Shows a loading state, then success or error.
- *
- * 'use client' because we need useSearchParams() to read the URL query param.
- */
-
 import { useEffect } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { useMutation } from '@tanstack/react-query'
@@ -30,13 +18,12 @@ export default function VerifyPage() {
       return verifyEmail(token)
     },
     onSuccess: () => {
-      // Redirect to login after 2 seconds
       setTimeout(() => router.push('/auth/login'), 2000)
     },
   })
 
   useEffect(() => {
-    // Trigger verification as soon as we have a token
+    // trigger verification as soon as we have a token
     if (token) mutate()
   }, [token, mutate])
 
@@ -99,3 +86,8 @@ export default function VerifyPage() {
 
   return null
 }
+
+//  Verify Email Page (src/app/auth/verify/page.tsx)
+//  The verification link in the email points here:
+//    https://jobhunt.vercel.app/auth/verify?token=<token>
+//  On mount: reads ?token from the URL and calls the backend to activate the account.

@@ -1,21 +1,3 @@
-/**
- * Axios API client (src/lib/api.ts)
- *
- * Central HTTP client for all API calls.
- *
- * SECURITY — what this file handles:
- *   1. Attaches the access token (from Zustand memory store) as Bearer header
- *   2. Attaches the CSRF token (from cookie) as X-CSRF-Token header on mutations
- *   3. Sends cookies automatically (credentials: 'include') for the refresh token
- *   4. On 401 from any request → attempts one silent token refresh
- *   5. If refresh also fails → clears auth state and redirects to /auth/login
- *
- * ENV VARIABLES:
- *   NEXT_PUBLIC_API_URL — the backend URL exposed to the browser.
- *   "NEXT_PUBLIC_" prefix is required by Next.js to include env vars in
- *   the client bundle. It is NOT a secret — it's just the API URL.
- */
-
 import axios, { AxiosError, type InternalAxiosRequestConfig } from 'axios'
 import Cookies from 'js-cookie'
 import { useAuthStore } from '../store/auth.store'
@@ -27,19 +9,14 @@ if (!API_URL) {
   throw new Error('NEXT_PUBLIC_API_URL is not defined. Check your .env.local file.')
 }
 
-// ─── Create Axios Instance ─────────────────────────────────────────────────────
-
 export const api = axios.create({
   baseURL: `${API_URL}/api/v1`,
-  withCredentials: true, // sends HttpOnly refresh_token cookie automatically
+  withCredentials: true,
   headers: { 'Content-Type': 'application/json' },
 })
 
-// ─── Request Interceptor ──────────────────────────────────────────────────────
-// Attaches auth + CSRF tokens to every outgoing request automatically.
-
 api.interceptors.request.use((config: InternalAxiosRequestConfig) => {
-  // Read access token directly from the Zustand store (not useState — no re-render)
+  // Read access token directly from the Zustand store
   const accessToken = useAuthStore.getState().accessToken
   if (accessToken) {
     config.headers.Authorization = `Bearer ${accessToken}`
@@ -57,9 +34,7 @@ api.interceptors.request.use((config: InternalAxiosRequestConfig) => {
   return config
 })
 
-// ─── Response Interceptor ─────────────────────────────────────────────────────
 // Silently refreshes the access token on 401 and retries the original request.
-
 let isRefreshing = false
 let failedQueue: Array<{
   resolve: (value: unknown) => void
@@ -88,7 +63,6 @@ api.interceptors.response.use(
     if (originalRequest.url?.includes('/auth/refresh')) {
       useAuthStore.getState().clearAuth()
       // Only redirect if not already on an auth page — prevents redirect loops
-      // when AuthProvider's useCurrentUser fires on the login/register pages
       if (typeof window !== 'undefined' && !window.location.pathname.startsWith('/auth')) {
         window.location.href = '/auth/login'
       }
@@ -136,3 +110,11 @@ api.interceptors.response.use(
     }
   }
 )
+
+
+//  Central HTTP client for all API calls.
+//  1. Attaches the access token (from Zustand memory store) as Bearer header
+//  2. Attaches the CSRF token (from cookie) as X-CSRF-Token header on mutations
+//  3. Sends cookies automatically (credentials: 'include') for the refresh token
+//  4. On 401 from any request → attempts one silent token refresh
+//  5. If refresh also fails → clears auth state and redirects to /auth/login

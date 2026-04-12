@@ -1,23 +1,9 @@
 @import 'tailwindcss';
 @import 'tw-animate-css';
 @import 'shadcn/tailwind.css';
-/*
- ---break---
- */
+
 @custom-variant dark (&:is(.dark *));
 
-/*
- * CSS custom properties for the design system.
- * These are used by shadcn/ui components via Tailwind's theme.
- *
- * Light mode values are in :root.
- * Dark mode values are in .dark (applied by next-themes to <html>).
- *
- * Usage in components:
- *   className="bg-background text-foreground"
- *   className="border-border"
- *   className="text-muted-foreground"
- */
 
 @layer base {
   :root {
@@ -131,10 +117,6 @@
   --radius-4xl: calc(var(--radius) * 2.6);
 }
 
-/*
- ---break---
- */
-
 :root {
   --background: oklch(1 0 0);
   --foreground: oklch(0.145 0 0);
@@ -169,10 +151,6 @@
   --sidebar-border: oklch(0.922 0 0);
   --sidebar-ring: oklch(0.708 0 0);
 }
-
-/*
- ---break---
- */
 
 .dark {
   --background: oklch(0.145 0 0);

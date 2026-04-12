@@ -21,7 +21,6 @@ export const useInitCsrf = () => {
   })
 }
 
-
 // only runs if the user might be authenticated (has a refresh token cookie). This re-hydrates auth state after a page refresh.
 export const useCurrentUser = () => {
   return useQuery({
@@ -75,7 +74,6 @@ export const useLogin = () => {
     },
   })
 }
-
 
 export const useLogout = () => {
   const router = useRouter()

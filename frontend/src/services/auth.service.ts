@@ -1,5 +1,3 @@
-
-
 import { api } from '../lib/api'
 import type { LoginResponse, RefreshResponse, User } from '../types'
 
@@ -18,7 +16,6 @@ export const registerUser = async (input: RegisterInput): Promise<{ message: str
   return res.data.data
 }
 
-
 export interface LoginInput {
   email: string
   password: string
@@ -27,7 +24,7 @@ export interface LoginInput {
 export const loginUser = async (input: LoginInput): Promise<LoginResponse> => {
   const res = await api.post<{ data: LoginResponse }>('/auth/login', {
     ...input,
-    website: '', 
+    website: '',
   })
   return res.data.data
 }
@@ -37,7 +34,6 @@ export const logoutUser = async (): Promise<void> => {
 }
 
 export const refreshSession = async (): Promise<RefreshResponse> => {
-
   const res = await api.post<{ data: RefreshResponse }>('/auth/refresh')
   return res.data.data
 }
@@ -66,4 +62,3 @@ export const initCsrf = async (): Promise<true> => {
 // The api client (src/lib/api.ts) handles token attachment automatically.
 // The backend sets/clears HttpOnly cookies, it is never touch them directly on the frontend.
 // The api interceptor attaches the CSRF token from the csrf_token cookie.
-

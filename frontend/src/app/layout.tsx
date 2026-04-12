@@ -24,12 +24,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" suppressHydrationWarning>
-      {/*
-       * suppressHydrationWarning on <html> is required by next-themes.
-       * next-themes adds class="dark" or class="light" to <html> on the client.
-       * Without this, React warns about a mismatch between server and client HTML.
-       */}
+    <html lang="en" suppressHydrationWarning> 
       <body
         className={`${geistSans.variable} ${geistMono.variable} min-h-screen bg-background font-sans antialiased`}
       >
@@ -37,7 +32,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <QueryProvider>
             <AuthProvider>
               {children}
-              {/* Sonner toast notifications — renders at the top level */}
               <Toaster position="top-right" richColors closeButton />
             </AuthProvider>
           </QueryProvider>
@@ -46,3 +40,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     </html>
   )
 }
+
+
+// suppressHydrationWarning on <html> is required by next-themes.

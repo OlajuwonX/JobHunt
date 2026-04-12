@@ -1,11 +1,3 @@
-/**
- * Home / Landing Page (src/app/page.tsx)
- *
- * The first thing a visitor sees.
- * Server component — fully rendered on the server, fast load, good SEO.
- * No 'use client' needed — pure HTML with Tailwind.
- */
-
 import Link from 'next/link'
 import { ArrowRight, CheckCircle } from 'lucide-react'
 

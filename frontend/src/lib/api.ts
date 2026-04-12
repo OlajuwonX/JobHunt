@@ -111,7 +111,6 @@ api.interceptors.response.use(
   }
 )
 
-
 //  Central HTTP client for all API calls.
 //  1. Attaches the access token (from Zustand memory store) as Bearer header
 //  2. Attaches the CSRF token (from cookie) as X-CSRF-Token header on mutations

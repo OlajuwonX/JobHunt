@@ -6,8 +6,7 @@ interface AuthState {
   accessToken: string | null
   isAuthenticated: boolean
 
-
-  // Called after successful login or token refresh. Stores the access token and user data in memory.  
+  // Called after successful login or token refresh. Stores the access token and user data in memory.
   setAuth: (accessToken: string, user: User) => void
 
   // Called on logout or when refresh fails.  Clears all in-memory auth state.
@@ -18,7 +17,6 @@ export const useAuthStore = create<AuthState>((set) => ({
   user: null,
   accessToken: null,
   isAuthenticated: false,
-
 
   setAuth: (accessToken, user) =>
     set({

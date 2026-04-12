@@ -23,21 +23,20 @@ export default function VerifyPage() {
   })
 
   useEffect(() => {
-    // trigger verification as soon as we have a token
     if (token) mutate()
   }, [token, mutate])
 
   if (!token) {
     return (
       <div className="flex flex-col items-center text-center">
-        <XCircle className="mb-4 h-12 w-12 text-destructive" />
-        <h1 className="text-xl font-semibold">Invalid link</h1>
-        <p className="mt-2 text-sm text-muted-foreground">
-          This verification link is missing a token.
-        </p>
+        <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-red-50">
+          <XCircle className="h-6 w-6 text-red-500" />
+        </div>
+        <h1 className="text-lg font-semibold text-slate-900">Invalid link</h1>
+        <p className="mt-2 text-sm text-slate-500">This verification link is missing a token.</p>
         <Link
           href="/auth/register"
-          className="mt-4 text-sm font-medium text-primary hover:underline"
+          className="mt-5 text-sm font-medium text-emerald-600 hover:text-emerald-700 transition-colors"
         >
           Create a new account
         </Link>
@@ -48,9 +47,9 @@ export default function VerifyPage() {
   if (isPending) {
     return (
       <div className="flex flex-col items-center text-center">
-        <Loader2 className="mb-4 h-10 w-10 animate-spin text-primary" />
-        <h1 className="text-xl font-semibold">Verifying your email…</h1>
-        <p className="mt-2 text-sm text-muted-foreground">Just a moment.</p>
+        <Loader2 className="mb-4 h-10 w-10 animate-spin text-emerald-600" />
+        <h1 className="text-lg font-semibold text-slate-900">Verifying your email…</h1>
+        <p className="mt-2 text-sm text-slate-500">Just a moment.</p>
       </div>
     )
   }
@@ -58,9 +57,11 @@ export default function VerifyPage() {
   if (isSuccess) {
     return (
       <div className="flex flex-col items-center text-center">
-        <CheckCircle className="mb-4 h-12 w-12 text-green-500" />
-        <h1 className="text-xl font-semibold">Email verified!</h1>
-        <p className="mt-2 text-sm text-muted-foreground">
+        <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-50">
+          <CheckCircle className="h-6 w-6 text-emerald-600" />
+        </div>
+        <h1 className="text-lg font-semibold text-slate-900">Email verified!</h1>
+        <p className="mt-2 text-sm text-slate-500">
           Your account is active. Redirecting to sign in…
         </p>
       </div>
@@ -74,10 +75,15 @@ export default function VerifyPage() {
 
     return (
       <div className="flex flex-col items-center text-center">
-        <XCircle className="mb-4 h-12 w-12 text-destructive" />
-        <h1 className="text-xl font-semibold">Verification failed</h1>
-        <p className="mt-2 text-sm text-muted-foreground">{message}</p>
-        <Link href="/auth/login" className="mt-4 text-sm font-medium text-primary hover:underline">
+        <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-red-50">
+          <XCircle className="h-6 w-6 text-red-500" />
+        </div>
+        <h1 className="text-lg font-semibold text-slate-900">Verification failed</h1>
+        <p className="mt-2 text-sm text-slate-500">{message}</p>
+        <Link
+          href="/auth/login"
+          className="mt-5 text-sm font-medium text-emerald-600 hover:text-emerald-700 transition-colors"
+        >
           Back to sign in
         </Link>
       </div>
@@ -86,8 +92,3 @@ export default function VerifyPage() {
 
   return null
 }
-
-//  Verify Email Page (src/app/auth/verify/page.tsx)
-//  The verification link in the email points here:
-//    https://jobhunt.vercel.app/auth/verify?token=<token>
-//  On mount: reads ?token from the URL and calls the backend to activate the account.

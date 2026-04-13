@@ -1,13 +1,13 @@
 'use client'
 
-import { useEffect } from 'react'
+import { Suspense, useEffect } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { useMutation } from '@tanstack/react-query'
 import { CheckCircle, XCircle, Loader2 } from 'lucide-react'
 import Link from 'next/link'
 import { verifyEmail } from '../../../services/auth.service'
 
-export default function VerifyPage() {
+function VerifyContent() {
   const searchParams = useSearchParams()
   const router = useRouter()
   const token = searchParams.get('token')
@@ -91,4 +91,19 @@ export default function VerifyPage() {
   }
 
   return null
+}
+
+export default function VerifyPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex flex-col items-center text-center">
+          <Loader2 className="mb-4 h-10 w-10 animate-spin text-emerald-600" />
+          <h1 className="text-lg font-semibold text-slate-900">Loading…</h1>
+        </div>
+      }
+    >
+      <VerifyContent />
+    </Suspense>
+  )
 }

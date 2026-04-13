@@ -86,14 +86,13 @@ export function LoginForm() {
               )}
               {...field('password')}
             />
-            <div className="">
-            <Link
-              href="/auth/forgot-password"
-              className="text-xs text-emerald-600 hover:text-emerald-700 transition-colors"
-            >
-              Forgot password?
-            </Link>
-
+            <div className="flex items-center justify-end mt-1">
+              <Link
+                href="/auth/forgot-password"
+                className="text-xs text-emerald-600 hover:text-emerald-700 transition-colors"
+              >
+                Forgot password?
+              </Link>
             </div>
             <button
               type="button"

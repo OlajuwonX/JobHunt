@@ -6,7 +6,7 @@ import type { User } from '../types'
 const API_URL = process.env.NEXT_PUBLIC_API_URL
 
 if (!API_URL) {
-  throw new Error('NEXT_PUBLIC_API_URL is not defined. Check your .env.local file.')
+  throw new Error('NEXT_PUBLIC_API_URL is not defined. Kindly set it')
 }
 
 export const api = axios.create({
@@ -62,10 +62,6 @@ api.interceptors.response.use(
     // Don't refresh if the failing request IS the refresh endpoint
     if (originalRequest.url?.includes('/auth/refresh')) {
       useAuthStore.getState().clearAuth()
-      // Only redirect if not already on an auth page — prevents redirect loops
-      if (typeof window !== 'undefined' && !window.location.pathname.startsWith('/auth')) {
-        window.location.href = '/auth/login'
-      }
       return Promise.reject(error)
     }
 
@@ -101,9 +97,6 @@ api.interceptors.response.use(
     } catch (refreshError) {
       processQueue(refreshError as AxiosError, null)
       useAuthStore.getState().clearAuth()
-      if (typeof window !== 'undefined' && !window.location.pathname.startsWith('/auth')) {
-        window.location.href = '/auth/login'
-      }
       return Promise.reject(refreshError)
     } finally {
       isRefreshing = false

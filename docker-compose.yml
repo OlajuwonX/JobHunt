@@ -1,32 +1,12 @@
-# ─────────────────────────────────────────────────────────────────────────────
-# JobHunt — Docker Compose (Local Development)
-# ─────────────────────────────────────────────────────────────────────────────
-#
-# Starts three services:
-#   - postgres: local database (optional, for offline use)
-#   - backend:  Express API on port 4000
-#   - frontend: Next.js on port 3000
-#
-# USAGE:
-#   Start everything:      docker-compose up --build
-#   Start in background:   docker-compose up -d
-#   Stop everything:       docker-compose down
-#   Reset database:        docker-compose down -v
-#   View logs:             docker-compose logs -f backend
-#
-# DEFAULT MODE (recommended):
-#   Uses Neon DB via DATABASE_URL
-#
-# TO SWITCH TO LOCAL POSTGRES:
-#   1. Update DATABASE_URL 
-#   2. Restart containers
-# ─────────────────────────────────────────────────────────────────────────────
+# ─────────────────────────────────────────────────────────────
+# JobHunt — Stable Docker Setup (No Volumes, No Crashes)
+# ─────────────────────────────────────────────────────────────
 
 version: '3.9'
 
 services:
 
-  # ─── PostgreSQL (OPTIONAL - for local/offline development) ────────────────
+  # ─── PostgreSQL Database ───────────────────────────────────
   postgres:
     image: postgres:15-alpine
     container_name: jobhunt_postgres
@@ -45,7 +25,7 @@ services:
       timeout: 5s
       retries: 5
 
-  # ─── Backend (Express API) ────────────────────────────────────────────────
+  # ─── Backend (Express + Prisma) ────────────────────────────
   backend:
     build:
       context: ./backend
@@ -57,16 +37,12 @@ services:
     env_file:
       - ./backend/.env
     environment:
-      NODE_ENV: development
+      NODE_ENV: production
     depends_on:
       postgres:
         condition: service_healthy
-    volumes:
-      - ./backend:/app
-      - /app/node_modules
-    command: npm run dev   # make sure your backend uses nodemon or similar
 
-  # ─── Frontend (Next.js) ───────────────────────────────────────────────────
+  # ─── Frontend (Next.js) ────────────────────────────────────
   frontend:
     build:
       context: ./frontend
@@ -78,15 +54,11 @@ services:
     env_file:
       - ./frontend/.env.local
     environment:
+      NODE_ENV: production
       NEXT_PUBLIC_API_URL: http://backend:4000
-      NODE_ENV: development
     depends_on:
       - backend
-    volumes:
-      - ./frontend:/app
-      - /app/node_modules
-    command: npm run dev   # Next.js dev server
 
-# ─── Volumes ────────────────────────────────────────────────────────────────
+# ─── Persistent Database Volume ──────────────────────────────
 volumes:
   pgdata:

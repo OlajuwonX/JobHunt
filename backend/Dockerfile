@@ -1,55 +1,48 @@
-# ─────────────────────────────────────────────────────────────────────────────
-# Backend Dockerfile — Express + TypeScript + Prisma
-# ─────────────────────────────────────────────────────────────────────────────
+# ─────────────────────────────────────────────
+# Backend Dockerfile (Express + TypeScript + Prisma)
+# ─────────────────────────────────────────────
 
-# ─── Stage 1: Build ───────────────────────────────────────────────────────────
-FROM node:20-alpine AS builder
+FROM node:20 AS builder
 
 WORKDIR /app
 
-# Copy dependency files first (for caching)
+# Install dependencies first (better caching)
 COPY package*.json ./
 COPY prisma ./prisma/
 
-# Install all dependencies (needed for build)
 RUN npm ci
 
-# Copy source code
+# Copy source
 COPY . .
 
-# Generate Prisma client
+# Generate Prisma client (ONLY here)
 RUN npx prisma generate
 
-# Build TypeScript → JavaScript
+# Build TypeScript
 RUN npm run build
 
 
-# ─── Stage 2: Production ──────────────────────────────────────────────────────
-FROM node:20-alpine AS runner
+# ─────────────────────────────────────────────
+# Production runtime (clean + fast)
+# ─────────────────────────────────────────────
+FROM node:20 AS runner
 
 WORKDIR /app
 
 ENV NODE_ENV=production
 ENV PORT=4000
 
-# Install ONLY production dependencies
+# Install production deps only
 COPY package*.json ./
 COPY prisma ./prisma/
 
-RUN npm ci --only=production
+RUN npm ci --omit=dev
 
-# Generate Prisma client again (required in runtime image)
-RUN npx prisma generate
-
-# Copy compiled output
+# Copy build output only
 COPY --from=builder /app/dist ./dist
+COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
+COPY --from=builder /app/node_modules/@prisma/client ./node_modules/@prisma/client
 
-# Expose backend port
 EXPOSE 4000
 
-# Healthcheck (requires /health endpoint in Express)
-HEALTHCHECK --interval=30s --timeout=5s --start-period=10s \
-  CMD node -e "require('http').get('http://localhost:4000/health', r => process.exit(r.statusCode === 200 ? 0 : 1))"
-
-# Start server
 CMD ["node", "dist/index.js"]

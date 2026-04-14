@@ -9,44 +9,6 @@ All responses follow the envelope pattern:
 { "success": false, "error": "message" }
 ```
 
----
-
-## Security Model
-
-```
-┌─────────────────────────────────────────────────────────────────────┐
-│ Access Token (JWT)                                                  │
-│   Lifetime:  5 minutes                                              │
-│   Storage:   Memory only (React variable / Zustand store)          │
-│   Sent as:   Authorization: Bearer <token>                         │
-│   Contains:  { id, email, iat, exp }                               │
-├─────────────────────────────────────────────────────────────────────┤
-│ Refresh Token                                                       │
-│   Lifetime:  30 days (absolute), rotated on every use              │
-│   Storage:   HttpOnly cookie (JavaScript cannot read)              │
-│   Cookie:    refresh_token                                          │
-│   DB:        Stored as SHA-256 hash (never plain text)             │
-├─────────────────────────────────────────────────────────────────────┤
-│ CSRF Token                                                          │
-│   Lifetime:  30 days (matches refresh token)                       │
-│   Storage:   Readable cookie (JavaScript reads and sends it)       │
-│   Cookie:    csrf_token                                             │
-│   Sent as:   X-CSRF-Token: <token> header on mutations             │
-└─────────────────────────────────────────────────────────────────────┘
-```
-
----
-
-## Honeypot Bot Protection
-
-All forms include a hidden `website` field that real users never see or fill.
-Bots that auto-fill all fields will populate it.
-
-**Rule:** If `website` is present and non-empty in the request body → silently return
-a fake success response (don't tell the bot it was caught).
-
----
-
 ## Endpoints
 
 ### GET /api/v1/auth/csrf-token
@@ -61,9 +23,6 @@ Get a CSRF token. Call this when the app first loads.
 ```json
 {
   "success": true,
-  "data": {
-    "csrfToken": "a3f5c2d8e1b7..."
-  }
 }
 ```
 
@@ -72,10 +31,7 @@ Also sets the `csrf_token` cookie (readable, not HttpOnly).
 **Frontend usage:**
 
 ```typescript
-// On app load
 const { data } = await api.get('/auth/csrf-token')
-// Zustand stores csrfToken in memory
-// Axios interceptor adds it to every mutation: X-CSRF-Token: <token>
 ```
 
 ---
@@ -92,18 +48,10 @@ Create a new user account.
 ```json
 {
   "email": "user@example.com",
-  "password": "MyPassword1",
-  "confirmPassword": "MyPassword1",
-  "website": ""
+  "password": "",
+  "confirmPassword": "",
 }
-```
-
-| Field           | Type   | Required | Rules                                       |
-| --------------- | ------ | -------- | ------------------------------------------- |
-| email           | string | yes      | Valid email format                          |
-| password        | string | yes      | Min 8 chars, 1 uppercase, 1 number          |
-| confirmPassword | string | yes      | Must match password                         |
-| website         | string | no       | **Honeypot** — must be empty (hidden field) |
+``
 
 **Required headers:**
 
@@ -148,8 +96,7 @@ Authenticate with email and password.
 ```json
 {
   "email": "user@example.com",
-  "password": "MyPassword1",
-  "website": ""
+  "password": "",
 }
 ```
 
@@ -164,15 +111,6 @@ X-CSRF-Token: <token from csrf_token cookie>
 ```json
 {
   "success": true,
-  "data": {
-    "accessToken": "eyJhbGciOiJIUzI1NiJ9...",
-    "user": {
-      "id": "clx...",
-      "email": "user@example.com",
-      "verified": true,
-      "createdAt": "2026-04-07T12:00:00.000Z"
-    }
-  }
 }
 ```
 
@@ -256,10 +194,6 @@ X-CSRF-Token: <token from csrf_token cookie>
 ```json
 {
   "success": true,
-  "data": {
-    "accessToken": "eyJhbGciOiJIUzI1NiJ9...",
-    "user": { ... }
-  }
 }
 ```
 
@@ -307,12 +241,6 @@ Activate an account using the token from the verification email.
 | 400 | Invalid or expired verification link |
 | 400 | Account already verified |
 
-**Frontend flow:**
-
-- Verification email links to: `https://jobhunt.vercel.app/auth/verify?token=<token>`
-- The Next.js page reads the token from the query string and calls this endpoint
-- On success: redirect to `/auth/login` with a success toast
-
 ---
 
 ### GET /api/v1/auth/me
@@ -333,14 +261,6 @@ Authorization: Bearer <accessToken>
 ```json
 {
   "success": true,
-  "data": {
-    "user": {
-      "id": "clx...",
-      "email": "user@example.com",
-      "verified": true,
-      "createdAt": "2026-04-07T12:00:00.000Z"
-    }
-  }
 }
 ```
 
@@ -369,42 +289,3 @@ Every authentication event is written to the `auth_logs` table:
 
 ---
 
-## Frontend Integration Example
-
-```typescript
-// services/auth.service.ts
-
-const API = process.env.NEXT_PUBLIC_API_URL
-
-// Get CSRF token on app load
-export const getCsrfToken = async () => {
-  const res = await fetch(`${API}/api/v1/auth/csrf-token`, { credentials: 'include' })
-  return res.json() // also sets csrf_token cookie
-}
-
-// Login
-export const login = async (email: string, password: string) => {
-  const csrfToken = getCsrfTokenFromCookie() // read the cookie with js-cookie
-  const res = await fetch(`${API}/api/v1/auth/login`, {
-    method: 'POST',
-    credentials: 'include', // sends refresh_token cookie
-    headers: {
-      'Content-Type': 'application/json',
-      'X-CSRF-Token': csrfToken,
-    },
-    body: JSON.stringify({ email, password, website: '' }),
-  })
-  return res.json() // { accessToken, user }
-}
-
-// Refresh (called every 4.5 min automatically)
-export const refreshSession = async () => {
-  const csrfToken = getCsrfTokenFromCookie()
-  const res = await fetch(`${API}/api/v1/auth/refresh`, {
-    method: 'POST',
-    credentials: 'include',
-    headers: { 'X-CSRF-Token': csrfToken },
-  })
-  return res.json() // { accessToken, user }
-}
-```

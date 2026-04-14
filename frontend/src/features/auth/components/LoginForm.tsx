@@ -58,7 +58,8 @@ export function LoginForm() {
               'w-full rounded-lg border border-dp-border bg-dp-input px-3.5 py-2.5 text-sm text-foreground',
               'placeholder:text-dp-muted transition-colors duration-150',
               'focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/20 focus:bg-dp-input-focus',
-              errors.email && 'border-destructive focus:border-destructive focus:ring-destructive/20'
+              errors.email &&
+                'border-destructive focus:border-destructive focus:ring-destructive/20'
             )}
             {...field('email')}
           />
@@ -82,7 +83,8 @@ export function LoginForm() {
                 'w-full rounded-lg border border-dp-border bg-dp-input px-3.5 py-2.5 pr-10 text-sm text-foreground',
                 'placeholder:text-dp-muted transition-colors duration-150',
                 'focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/20 focus:bg-dp-input-focus',
-                errors.password && 'border-destructive focus:border-destructive focus:ring-destructive/20'
+                errors.password &&
+                  'border-destructive focus:border-destructive focus:ring-destructive/20'
               )}
               {...field('password')}
             />

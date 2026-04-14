@@ -43,27 +43,33 @@ const features = [
 
 export default function HomePage() {
   return (
-    <main className="min-h-screen bg-white">
-      <nav className="sticky top-0 z-10 border-b border-slate-100 bg-white/90 backdrop-blur-sm">
+    <main
+      className="min-h-screen bg-canvas text-foreground"
+      style={{
+        backgroundImage: 'radial-gradient(circle, rgba(148,163,184,0.07) 1px, transparent 1px)',
+        backgroundSize: '28px 28px',
+      }}
+    >
+      <nav className="sticky top-0 z-10 backdrop-blur-sm">
         <div className="mx-auto flex max-w-5xl items-center justify-between px-6 py-4">
           <Image
-            src="/jobhunt.png"
+            src="/joblogo.webp"
             alt="JobHunt"
-            width={120}
-            height={32}
-            className="h-8 w-auto object-contain"
+            width={240}
+            height={100}
+            className="h-18 w-auto object-contain"
             priority
           />
           <div className="flex items-center gap-4">
             <Link
               href="/auth/login"
-              className="text-sm text-slate-500 transition-colors hover:text-slate-900"
+              className="text-sm text-muted-foreground transition-colors hover:text-foreground"
             >
               Sign in
             </Link>
             <Link
               href="/auth/register"
-              className="flex items-center gap-1.5 rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-slate-700"
+              className="flex items-center gap-1.5 rounded-lg bg-brand px-4 py-2 text-sm font-medium text-brand-fg transition-colors hover:bg-brand-dim"
             >
               Get started
               <ArrowRight size={14} />
@@ -73,46 +79,46 @@ export default function HomePage() {
       </nav>
 
       <section className="mx-auto max-w-5xl px-6 pb-24 pt-20 text-center">
-        <span className="mb-5 inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-medium text-emerald-700">
-          <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+        <span className="mb-5 inline-flex items-center gap-1.5 rounded-full border border-brand/30 bg-brand-subtle px-3 py-1 text-xs font-medium text-brand">
+          <span className="h-1.5 w-1.5 rounded-full bg-brand" />
           Now in early access
         </span>
 
-        <h1 className="mx-auto max-w-2xl text-5xl font-bold tracking-tight text-slate-900 sm:text-6xl">
+        <h1 className="mx-auto max-w-2xl text-5xl font-bold tracking-tight text-foreground sm:text-6xl">
           Job hunting,
           <br />
           the smarter way.
         </h1>
 
-        <p className="mx-auto mt-5 max-w-xl text-lg text-slate-500">
+        <p className="mx-auto mt-5 max-w-xl text-lg text-muted-foreground">
           Stop jumping between job boards. JobHunt aggregates listings from every major platform,
-          removes duplicates, scores your resume, and tracks every application — in one place.
+          removes duplicates, scores your resume and tracks every application in one place.
         </p>
 
         <div className="mt-9 flex flex-col items-center justify-center gap-3 sm:flex-row">
           <Link
             href="/auth/register"
-            className="flex w-full items-center justify-center gap-2 rounded-lg bg-slate-900 px-7 py-3 text-sm font-semibold text-white transition-colors hover:bg-slate-700 sm:w-auto"
+            className="flex w-full items-center justify-center gap-2 rounded-lg bg-brand px-7 py-3 text-sm font-semibold text-brand-fg transition-colors hover:bg-brand-dim sm:w-auto"
           >
             Create free account
             <ArrowRight size={15} />
           </Link>
           <Link
             href="/auth/login"
-            className="flex w-full items-center justify-center rounded-lg border border-slate-200 px-7 py-3 text-sm font-medium text-slate-700 transition-colors hover:border-slate-300 hover:bg-slate-50 sm:w-auto"
+            className="flex w-full items-center justify-center rounded-lg border border-canvas-border px-7 py-3 text-sm font-medium text-muted-foreground transition-colors hover:border-brand/30 hover:text-foreground sm:w-auto"
           >
             Sign in
           </Link>
         </div>
       </section>
 
-      <section className="border-t border-slate-100">
+      <section className="border-t border-canvas-border">
         <div className="mx-auto max-w-5xl px-6 py-20">
           <div className="mb-14 text-center">
-            <h2 className="text-2xl font-bold tracking-tight text-slate-900">
+            <h2 className="text-2xl font-bold tracking-tight text-foreground">
               Everything your job search needs
             </h2>
-            <p className="mt-2 text-slate-500">
+            <p className="mt-2 text-muted-foreground">
               Built around one principle: clarity, control, continuity.
             </p>
           </div>
@@ -120,26 +126,26 @@ export default function HomePage() {
           <div className="grid grid-cols-1 gap-10 sm:grid-cols-2 lg:grid-cols-3">
             {features.map(({ icon: Icon, title, description }) => (
               <div key={title}>
-                <div className="mb-3 flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 bg-slate-50">
-                  <Icon size={16} className="text-slate-700" />
+                <div className="mb-3 flex h-9 w-9 items-center justify-center rounded-lg border border-canvas-border bg-surface">
+                  <Icon size={16} className="text-brand" />
                 </div>
-                <h3 className="mb-1 text-sm font-semibold text-slate-900">{title}</h3>
-                <p className="text-sm leading-relaxed text-slate-500">{description}</p>
+                <h3 className="mb-1 text-sm font-semibold text-foreground">{title}</h3>
+                <p className="text-sm leading-relaxed text-muted-foreground">{description}</p>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      <section className="border-t border-slate-100 bg-slate-50">
+      <section className="border-t border-canvas-border">
         <div className="mx-auto max-w-5xl px-6 py-20 text-center">
-          <h2 className="text-2xl font-bold tracking-tight text-slate-900">
+          <h2 className="text-2xl font-bold tracking-tight text-foreground">
             Ready to simplify your job search?
           </h2>
-          <p className="mt-2 text-slate-500">Free to use. No credit card required.</p>
+          <p className="mt-2 text-muted-foreground">Free to use. No credit card required.</p>
           <Link
             href="/auth/register"
-            className="mt-7 inline-flex items-center gap-2 rounded-lg bg-slate-900 px-7 py-3 text-sm font-semibold text-white transition-colors hover:bg-slate-700"
+            className="mt-7 inline-flex items-center gap-2 rounded-lg bg-brand px-7 py-3 text-sm font-semibold text-brand-fg transition-colors hover:bg-brand-dim"
           >
             Get started for free
             <ArrowRight size={15} />
@@ -147,26 +153,11 @@ export default function HomePage() {
         </div>
       </section>
 
-      <footer className="border-t border-slate-100">
-        <div className="mx-auto flex max-w-5xl flex-col items-center justify-between gap-4 px-6 py-8 sm:flex-row">
-          <Image
-            src="/jobhunt.png"
-            alt="JobHunt"
-            width={90}
-            height={24}
-            className="h-6 w-auto object-contain opacity-60"
-          />
-          <p className="text-xs text-slate-400">
+      <footer className="border-t border-canvas-border ">
+        <div className="mx-auto flex max-w-5xl items-center justify-center px-6 py-8">
+          <p className="text-xs text-muted-foreground">
             &copy; {new Date().getFullYear()} JobHunt. All rights reserved.
           </p>
-          <div className="flex items-center gap-5">
-            <Link href="/auth/login" className="text-xs text-slate-400 hover:text-slate-600">
-              Sign in
-            </Link>
-            <Link href="/auth/register" className="text-xs text-slate-400 hover:text-slate-600">
-              Get started
-            </Link>
-          </div>
         </div>
       </footer>
     </main>

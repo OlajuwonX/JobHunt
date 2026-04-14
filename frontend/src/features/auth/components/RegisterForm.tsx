@@ -29,8 +29,8 @@ export function RegisterForm() {
   return (
     <div className="w-full">
       <div className="mb-6">
-        <h1 className="text-xl font-semibold text-slate-900">Create account</h1>
-        <p className="mt-1 text-sm text-slate-500">Start your job search, the smart way.</p>
+        <h1 className="text-xl font-semibold text-foreground">Create account</h1>
+        <p className="mt-1 text-sm text-dp-subtle">Start your job search, the smart way.</p>
       </div>
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
@@ -44,7 +44,7 @@ export function RegisterForm() {
         />
 
         <div className="space-y-1.5">
-          <label htmlFor="email" className="block text-sm font-medium text-slate-700">
+          <label htmlFor="email" className="block text-sm font-medium text-dp-subtle">
             Email address
           </label>
           <input
@@ -54,18 +54,18 @@ export function RegisterForm() {
             placeholder="you@example.com"
             data-testid="register-email"
             className={cn(
-              'w-full rounded-lg border border-slate-200 bg-white px-3.5 py-2.5 text-sm text-slate-900',
-              'placeholder:text-slate-400 transition-colors duration-150',
-              'focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20',
-              errors.email && 'border-red-400 focus:border-red-400 focus:ring-red-400/20'
+              'w-full rounded-lg border border-dp-border bg-dp-input px-3.5 py-2.5 text-sm text-foreground',
+              'placeholder:text-dp-muted transition-colors duration-150',
+              'focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/20 focus:bg-dp-input-focus',
+              errors.email && 'border-destructive focus:border-destructive focus:ring-destructive/20'
             )}
             {...field('email')}
           />
-          {errors.email && <p className="text-xs text-red-500">{errors.email.message}</p>}
+          {errors.email && <p className="text-xs text-destructive">{errors.email.message}</p>}
         </div>
 
         <div className="space-y-1.5">
-          <label htmlFor="password" className="block text-sm font-medium text-slate-700">
+          <label htmlFor="password" className="block text-sm font-medium text-dp-subtle">
             Password
           </label>
           <div className="relative">
@@ -76,27 +76,27 @@ export function RegisterForm() {
               placeholder="Min 8 chars, 1 uppercase, 1 number"
               data-testid="register-password"
               className={cn(
-                'w-full rounded-lg border border-slate-200 bg-white px-3.5 py-2.5 pr-10 text-sm text-slate-900',
-                'placeholder:text-slate-400 transition-colors duration-150',
-                'focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20',
-                errors.password && 'border-red-400 focus:border-red-400 focus:ring-red-400/20'
+                'w-full rounded-lg border border-dp-border bg-dp-input px-3.5 py-2.5 pr-10 text-sm text-foreground',
+                'placeholder:text-dp-muted transition-colors duration-150',
+                'focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/20 focus:bg-dp-input-focus',
+                errors.password && 'border-destructive focus:border-destructive focus:ring-destructive/20'
               )}
               {...field('password')}
             />
             <button
               type="button"
               onClick={() => setShowPassword((v) => !v)}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 transition-colors hover:text-slate-600"
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-dp-muted transition-colors hover:text-dp-subtle"
               aria-label={showPassword ? 'Hide password' : 'Show password'}
             >
               {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
             </button>
           </div>
-          {errors.password && <p className="text-xs text-red-500">{errors.password.message}</p>}
+          {errors.password && <p className="text-xs text-destructive">{errors.password.message}</p>}
         </div>
 
         <div className="space-y-1.5">
-          <label htmlFor="confirmPassword" className="block text-sm font-medium text-slate-700">
+          <label htmlFor="confirmPassword" className="block text-sm font-medium text-dp-subtle">
             Confirm password
           </label>
           <div className="relative">
@@ -107,25 +107,25 @@ export function RegisterForm() {
               placeholder="Re-enter your password"
               data-testid="register-confirm"
               className={cn(
-                'w-full rounded-lg border border-slate-200 bg-white px-3.5 py-2.5 pr-10 text-sm text-slate-900',
-                'placeholder:text-slate-400 transition-colors duration-150',
-                'focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20',
+                'w-full rounded-lg border border-dp-border bg-dp-input px-3.5 py-2.5 pr-10 text-sm text-foreground',
+                'placeholder:text-dp-muted transition-colors duration-150',
+                'focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/20 focus:bg-dp-input-focus',
                 errors.confirmPassword &&
-                  'border-red-400 focus:border-red-400 focus:ring-red-400/20'
+                  'border-destructive focus:border-destructive focus:ring-destructive/20'
               )}
               {...field('confirmPassword')}
             />
             <button
               type="button"
               onClick={() => setShowConfirm((v) => !v)}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 transition-colors hover:text-slate-600"
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-dp-muted transition-colors hover:text-dp-subtle"
               aria-label={showConfirm ? 'Hide password' : 'Show password'}
             >
               {showConfirm ? <EyeOff size={16} /> : <Eye size={16} />}
             </button>
           </div>
           {errors.confirmPassword && (
-            <p className="text-xs text-red-500">{errors.confirmPassword.message}</p>
+            <p className="text-xs text-destructive">{errors.confirmPassword.message}</p>
           )}
         </div>
 
@@ -135,8 +135,8 @@ export function RegisterForm() {
           data-testid="register-submit"
           className={cn(
             'mt-1 flex w-full items-center justify-center gap-2 rounded-lg px-4 py-2.5',
-            'bg-slate-900 text-sm font-semibold text-white',
-            'hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-900 focus:ring-offset-2',
+            'bg-brand text-sm font-semibold text-brand-fg',
+            'hover:bg-brand-dim focus:outline-none focus:ring-2 focus:ring-brand focus:ring-offset-2 focus:ring-offset-surface',
             'transition-all duration-150 disabled:cursor-not-allowed disabled:opacity-60'
           )}
         >
@@ -145,11 +145,11 @@ export function RegisterForm() {
         </button>
       </form>
 
-      <p className="mt-6 text-center text-sm text-slate-500">
+      <p className="mt-6 text-center text-sm text-dp-subtle">
         Already have an account?{' '}
         <Link
           href="/auth/login"
-          className="font-medium text-emerald-600 hover:text-emerald-700 transition-colors"
+          className="font-medium text-brand hover:text-brand-dim transition-colors"
         >
           Sign in
         </Link>

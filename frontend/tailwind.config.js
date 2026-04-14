@@ -8,6 +8,9 @@ module.exports = {
     './src/features/**/*.{js,ts,jsx,tsx,mdx}',
     './src/hooks/**/*.{js,ts,jsx,tsx,mdx}',
     './src/lib/**/*.{js,ts,jsx,tsx,mdx}',
+    './src/services/**/*.{js,ts,jsx,tsx,mdx}',
+    './src/store/**/*.{js,ts,jsx,tsx,mdx}',
+    './src/types/**/*.{js,ts,jsx,tsx,mdx}',
   ],
   theme: {
     extend: {
@@ -45,10 +48,15 @@ module.exports = {
         border: 'var(--border)',
         input: 'var(--input)',
         ring: 'var(--ring)',
-        // Brand tokens
         canvas: 'var(--canvas)',
         surface: 'var(--surface)',
+        'surface-raised': 'var(--surface-raised)',
         'canvas-border': 'var(--canvas-border)',
+        'dp-border': 'var(--dp-border)',
+        'dp-input': 'var(--dp-input)',
+        'dp-input-focus': 'var(--dp-input-focus)',
+        'dp-muted': 'var(--dp-muted)',
+        'dp-subtle': 'var(--dp-subtle)',
         brand: {
           DEFAULT: 'var(--brand)',
           dim: 'var(--brand-dim)',

@@ -44,7 +44,7 @@ const features = [
 export default function HomePage() {
   return (
     <main
-      className="min-h-screen bg-canvas text-foreground"
+      className="min-h-screen bg-[#10011d] text-foreground"
       style={{
         backgroundImage: 'radial-gradient(circle, rgba(148,163,184,0.07) 1px, transparent 1px)',
         backgroundSize: '28px 28px',

@@ -29,14 +29,14 @@ function VerifyContent() {
   if (!token) {
     return (
       <div className="flex flex-col items-center text-center">
-        <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-red-50">
-          <XCircle className="h-6 w-6 text-red-500" />
+        <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-destructive/15">
+          <XCircle className="h-6 w-6 text-destructive" />
         </div>
-        <h1 className="text-lg font-semibold text-slate-900">Invalid link</h1>
-        <p className="mt-2 text-sm text-slate-500">This verification link is missing a token.</p>
+        <h1 className="text-lg font-semibold text-foreground">Invalid link</h1>
+        <p className="mt-2 text-sm text-dp-subtle">This verification link is missing a token.</p>
         <Link
           href="/auth/register"
-          className="mt-5 text-sm font-medium text-emerald-600 hover:text-emerald-700 transition-colors"
+          className="mt-5 text-sm font-medium text-brand hover:text-brand-dim transition-colors"
         >
           Create a new account
         </Link>
@@ -47,9 +47,9 @@ function VerifyContent() {
   if (isPending) {
     return (
       <div className="flex flex-col items-center text-center">
-        <Loader2 className="mb-4 h-10 w-10 animate-spin text-emerald-600" />
-        <h1 className="text-lg font-semibold text-slate-900">Verifying your email…</h1>
-        <p className="mt-2 text-sm text-slate-500">Just a moment.</p>
+        <Loader2 className="mb-4 h-10 w-10 animate-spin text-brand" />
+        <h1 className="text-lg font-semibold text-foreground">Verifying your email…</h1>
+        <p className="mt-2 text-sm text-dp-subtle">Just a moment.</p>
       </div>
     )
   }
@@ -57,11 +57,11 @@ function VerifyContent() {
   if (isSuccess) {
     return (
       <div className="flex flex-col items-center text-center">
-        <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-50">
-          <CheckCircle className="h-6 w-6 text-emerald-600" />
+        <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-brand-subtle">
+          <CheckCircle className="h-6 w-6 text-brand" />
         </div>
-        <h1 className="text-lg font-semibold text-slate-900">Email verified!</h1>
-        <p className="mt-2 text-sm text-slate-500">
+        <h1 className="text-lg font-semibold text-foreground">Email verified!</h1>
+        <p className="mt-2 text-sm text-dp-subtle">
           Your account is active. Redirecting to sign in…
         </p>
       </div>
@@ -75,14 +75,14 @@ function VerifyContent() {
 
     return (
       <div className="flex flex-col items-center text-center">
-        <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-red-50">
-          <XCircle className="h-6 w-6 text-red-500" />
+        <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-destructive/15">
+          <XCircle className="h-6 w-6 text-destructive" />
         </div>
-        <h1 className="text-lg font-semibold text-slate-900">Verification failed</h1>
-        <p className="mt-2 text-sm text-slate-500">{message}</p>
+        <h1 className="text-lg font-semibold text-foreground">Verification failed</h1>
+        <p className="mt-2 text-sm text-dp-subtle">{message}</p>
         <Link
           href="/auth/login"
-          className="mt-5 text-sm font-medium text-emerald-600 hover:text-emerald-700 transition-colors"
+          className="mt-5 text-sm font-medium text-brand hover:text-brand-dim transition-colors"
         >
           Back to sign in
         </Link>
@@ -98,8 +98,8 @@ export default function VerifyPage() {
     <Suspense
       fallback={
         <div className="flex flex-col items-center text-center">
-          <Loader2 className="mb-4 h-10 w-10 animate-spin text-emerald-600" />
-          <h1 className="text-lg font-semibold text-slate-900">Loading…</h1>
+          <Loader2 className="mb-4 h-10 w-10 animate-spin text-brand" />
+          <h1 className="text-lg font-semibold text-foreground">Loading…</h1>
         </div>
       }
     >

@@ -1,12 +1,16 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 
+const PUBLIC_PATHS = ['/']
+
 const PROTECTED_PREFIXES = ['/dashboard']
 
 const AUTH_PREFIXES = ['/auth/login', '/auth/register']
 
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
+
+  if (PUBLIC_PATHS.includes(pathname)) return NextResponse.next()
 
   const hasSession = request.cookies.has('refresh_token')
 
@@ -19,7 +23,6 @@ export function middleware(request: NextRequest) {
     return NextResponse.redirect(loginUrl)
   }
 
-  // Authenticated user trying to visit login/register → send to dashboard
   if (isAuthPage && hasSession) {
     const dashboardUrl = request.nextUrl.clone()
     dashboardUrl.pathname = '/dashboard'

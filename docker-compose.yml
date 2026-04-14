@@ -1,8 +1,6 @@
 # ─────────────────────────────────────────────────────────────
-# JobHunt — Stable Docker Setup (No Volumes, No Crashes)
+# JobHunt — Dev Docker Setup (Hot Reload Enabled)
 # ─────────────────────────────────────────────────────────────
-
-version: '3.9'
 
 services:
 
@@ -29,15 +27,17 @@ services:
   backend:
     build:
       context: ./backend
-      dockerfile: Dockerfile
-    container_name: jobhunt_backend
-    restart: unless-stopped
+    working_dir: /app
     ports:
       - "4000:4000"
+    volumes:
+      - ./backend:/app
+      - /app/node_modules
+    command: sh -c "npm install && npm run dev"
     env_file:
       - ./backend/.env
     environment:
-      NODE_ENV: production
+      NODE_ENV: development
     depends_on:
       postgres:
         condition: service_healthy
@@ -46,15 +46,15 @@ services:
   frontend:
     build:
       context: ./frontend
-      dockerfile: Dockerfile
-    container_name: jobhunt_frontend
-    restart: unless-stopped
+    working_dir: /app
     ports:
       - "3000:3000"
-    env_file:
-      - ./frontend/.env.local
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    command: sh -c "npm install && npm run dev"
     environment:
-      NODE_ENV: production
+      NODE_ENV: development
       NEXT_PUBLIC_API_URL: http://backend:4000
     depends_on:
       - backend

@@ -5,8 +5,15 @@
 
 /** @type {import('jest').Config} */
 const config = {
-  // ts-jest preset handles TypeScript compilation automatically
+  // ts-jest preset handles TypeScript compilation automatically.
+  // tsconfig.test.json extends the main config and adds @types/jest so
+  // the IDE resolves jest globals (describe, it, expect, etc.) in test files.
   preset: 'ts-jest',
+  globals: {
+    'ts-jest': {
+      tsconfig: './tsconfig.test.json',
+    },
+  },
 
   // Node environment — correct for Express (not jsdom/browser)
   testEnvironment: 'node',

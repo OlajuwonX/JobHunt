@@ -64,8 +64,15 @@ const jobFiltersSchema = z.object({
   // Full-text search — searches title and company name
   q: z.string().max(100).optional(),
 
-  // Category filter (stored in the techStack or for future category field)
+  // Category filter — matches the category column set during normalization
+  // Values: 'tech' | 'finance' | 'sales' | 'marketing' | 'healthcare' | 'design' |
+  //         'operations' | 'hr' | 'legal' | 'education' | 'other'
   category: z.string().max(50).optional(),
+
+  // Country filter — shows jobs from a specific market
+  // 'nigeria' = Nigerian job board listings, 'global' = international listings
+  // Stored lowercase in DB so no transformation needed before querying
+  country: z.enum(['nigeria', 'global']).optional(),
 
   // Date filter — show jobs posted after this date
   // z.coerce.date() converts a string like "2024-01-01" to a Date object
@@ -105,6 +112,7 @@ export const getJobs = asyncHandler(async (req: Request, res: Response) => {
     remote: filters.remote,
     q: filters.q,
     category: filters.category,
+    country: filters.country,
     since: filters.since,
     minScore: filters.minScore,
   })

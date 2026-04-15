@@ -213,6 +213,9 @@ Requirements:
         'sourceUrl',
         'postedAt',
         'salaryRange',
+        // Intelligence layer fields (B16)
+        'category',
+        'country',
       ]
 
       for (const field of requiredFields) {
@@ -236,6 +239,148 @@ Requirements:
       const raw = makeRawJob({ source: 'greenhouse' })
       const result = normalize(raw)
       expect(result.source).toBe('greenhouse')
+    })
+  })
+
+  // ─── detectCategory() — tested via normalize() output ──────────────────────
+
+  describe('category detection', () => {
+    it('should detect "tech" from job title containing "engineer"', () => {
+      const result = normalize(makeRawJob({ title: 'Senior Software Engineer', description: 'Build APIs' }))
+      expect(result.category).toBe('tech')
+    })
+
+    it('should detect "tech" from job title containing "developer"', () => {
+      const result = normalize(makeRawJob({ title: 'Frontend Developer', description: 'Build UIs' }))
+      expect(result.category).toBe('tech')
+    })
+
+    it('should detect "finance" from job title containing "accountant"', () => {
+      const result = normalize(makeRawJob({
+        title: 'Senior Accountant',
+        description: 'Manage accounts payable and receivable',
+      }))
+      expect(result.category).toBe('finance')
+    })
+
+    it('should detect "finance" from title containing "financial"', () => {
+      const result = normalize(makeRawJob({
+        title: 'Financial Analyst',
+        description: 'Analyze investment portfolios',
+      }))
+      expect(result.category).toBe('finance')
+    })
+
+    it('should detect "sales" from job title containing "sales"', () => {
+      const result = normalize(makeRawJob({
+        title: 'Sales Representative',
+        description: 'Drive revenue growth for the company',
+      }))
+      expect(result.category).toBe('sales')
+    })
+
+    it('should detect "marketing" from job title containing "marketing"', () => {
+      const result = normalize(makeRawJob({
+        title: 'Digital Marketing Manager',
+        description: 'Run campaigns on social media',
+      }))
+      expect(result.category).toBe('marketing')
+    })
+
+    it('should detect "healthcare" from job title containing "nurse"', () => {
+      const result = normalize(makeRawJob({
+        title: 'Registered Nurse',
+        description: 'Provide clinical care to patients in a hospital setting',
+      }))
+      expect(result.category).toBe('healthcare')
+    })
+
+    it('should detect "hr" from job title containing "recruitment"', () => {
+      const result = normalize(makeRawJob({
+        title: 'Recruitment Specialist',
+        description: 'Talent acquisition and HR management',
+      }))
+      expect(result.category).toBe('hr')
+    })
+
+    it('should detect "legal" from job title containing "lawyer"', () => {
+      const result = normalize(makeRawJob({
+        title: 'Corporate Lawyer',
+        description: 'Handle compliance and legal counsel for the firm',
+      }))
+      expect(result.category).toBe('legal')
+    })
+
+    it('should fall back to "other" when no keywords match', () => {
+      const result = normalize(makeRawJob({
+        title: 'Program Coordinator',
+        description: 'Coordinate programs and events for the organization',
+      }))
+      expect(result.category).toBe('other')
+    })
+
+    it('should detect category from description even when title is ambiguous', () => {
+      // "Manager" alone is ambiguous, but description makes it clear it is finance
+      const result = normalize(makeRawJob({
+        title: 'Manager',
+        description: 'Oversee accounting, audit, and tax compliance operations',
+      }))
+      expect(result.category).toBe('finance')
+    })
+  })
+
+  // ─── detectCountry() — tested via normalize() output ───────────────────────
+
+  describe('country detection', () => {
+    it('should return "nigeria" for jobs from Nigerian source "jobberman"', () => {
+      const result = normalize(makeRawJob({ source: 'jobberman', location: null }))
+      expect(result.country).toBe('nigeria')
+    })
+
+    it('should return "nigeria" for jobs from Nigerian source "myjobmag"', () => {
+      const result = normalize(makeRawJob({ source: 'myjobmag', location: 'Lagos' }))
+      expect(result.country).toBe('nigeria')
+    })
+
+    it('should return "nigeria" for jobs from Nigerian source "hotnigerianjobs"', () => {
+      const result = normalize(makeRawJob({ source: 'hotnigerianjobs', location: null }))
+      expect(result.country).toBe('nigeria')
+    })
+
+    it('should return "nigeria" for jobs from Nigerian source "ngcareers"', () => {
+      const result = normalize(makeRawJob({ source: 'ngcareers', location: null }))
+      expect(result.country).toBe('nigeria')
+    })
+
+    it('should return "nigeria" when location contains "Lagos" (non-Nigerian source)', () => {
+      const result = normalize(makeRawJob({ source: 'greenhouse', location: 'Lagos, Nigeria' }))
+      expect(result.country).toBe('nigeria')
+    })
+
+    it('should return "nigeria" when location contains "Abuja"', () => {
+      const result = normalize(makeRawJob({ source: 'lever', location: 'Abuja' }))
+      expect(result.country).toBe('nigeria')
+    })
+
+    it('should return "nigeria" when location contains "Port Harcourt"', () => {
+      const result = normalize(makeRawJob({ source: 'greenhouse', location: 'Port Harcourt, Nigeria' }))
+      expect(result.country).toBe('nigeria')
+    })
+
+    it('should return "global" for non-Nigerian source and non-Nigerian location', () => {
+      const result = normalize(makeRawJob({ source: 'greenhouse', location: 'Remote, US' }))
+      expect(result.country).toBe('global')
+    })
+
+    it('should return "global" when location is null and source is not Nigerian', () => {
+      const result = normalize(makeRawJob({ source: 'remotive', location: null }))
+      expect(result.country).toBe('global')
+    })
+
+    it('should store country as lowercase only (consistent with DB query expectations)', () => {
+      const result = normalize(makeRawJob({ source: 'jobberman' }))
+      // Must be lowercase so WHERE country = 'nigeria' works without .toLowerCase()
+      expect(result.country).toBe(result.country.toLowerCase())
     })
   })
 })

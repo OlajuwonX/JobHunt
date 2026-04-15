@@ -167,10 +167,18 @@ model Job {
   id String @id @default(cuid())
 
   jobHash String @unique
-  // SHA-256 hash of (title + company + location).
-  // DEDUPLICATION: if Greenhouse and Lever both list the same job,
-  // they'll produce the same hash. We upsert (update-or-insert) so we
-  // never store the same job twice.
+  // SHA-256 hash of (title + company + location) — exact match deduplication.
+  // Two jobs with the same title, company, and location from any source → same hash → stored once.
+
+  fuzzyHash String?
+  // SHA-256 hash of (canonicalTitle + canonicalCompany + canonicalLocation).
+  // FUZZY DEDUPLICATION: catches title variants that refer to the same role:
+  //   "Frontend Engineer" ≈ "Frontend Developer" ≈ "Front-End Engineer"
+  //   "Junior Developer"  ≈ "Jr. Developer" ≈ "Jnr Developer"
+  // Nullable so existing rows without a fuzzyHash are harmless (treated as unscored).
+  // NOT @unique — uniqueness is enforced in the service layer (batchUpsert),
+  // not the DB, because false-positive collisions on fuzzyHash are possible and
+  // we handle them with a pre-check + createMany rather than a DB constraint.
 
   title   String
   company String
@@ -195,6 +203,16 @@ model Job {
   // e.g. "$80,000 - $120,000" or "£50k–£70k" or null if not specified.
   // We store it as-is (not parsed to numbers) because formats vary wildly across sources.
 
+  category  String   @default("other")
+  // Detected from title+description during normalization.
+  // Values: 'tech' | 'finance' | 'sales' | 'marketing' | 'healthcare' | 'design' | 'operations' | 'hr' | 'legal' | 'education' | 'other'
+  // Enables category-based filtering on the job feed (e.g. "show me only tech jobs").
+
+  country   String   @default("global")
+  // Detected from location string + source name during normalization.
+  // Values: 'nigeria' | 'global' — lowercase only for consistent query comparison.
+  // Allows Nigerian users to see more locally-relevant jobs at the top of their feed.
+
   postedAt  DateTime // when the job was posted on the source platform
   createdAt DateTime @default(now())
 
@@ -202,9 +220,12 @@ model Job {
   applications Application[]
   atsScores    AtsScore[]
 
-  @@index([source]) // fast filter: show me only Greenhouse jobs
-  @@index([postedAt(sort: Desc)]) // fast sort: newest first — Desc means newest rows come first
-  @@index([remote]) // fast filter: show me only remote jobs
+  @@index([source])              // fast filter: show me only Greenhouse jobs
+  @@index([postedAt(sort: Desc)]) // fast sort: newest first
+  @@index([remote])              // fast filter: remote jobs only
+  @@index([fuzzyHash])           // fast lookup during batchUpsert fuzzy dedup pre-check
+  @@index([category])            // fast filter: show me only tech jobs
+  @@index([country])             // fast filter: show me only Nigerian jobs
   @@map("jobs")
 }
 

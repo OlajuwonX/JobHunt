@@ -80,7 +80,6 @@ export const myjobmagAdapter: JobAdapter = {
           jobCards.each((_index, element) => {
             try {
               const card = $(element)
-
               // Try multiple selector patterns for title — sites change their CSS classes
               const title =
                 card.find('h2, h3, .job-title, .title, a.job-link').first().text().trim() || ''

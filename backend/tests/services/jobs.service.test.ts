@@ -31,8 +31,8 @@ jest.mock('../../src/utils/prisma', () => ({
   __esModule: true,
   default: {
     job: {
-      upsert: jest.fn(),
       findMany: jest.fn(),
+      createMany: jest.fn(),
       count: jest.fn(),
       findUnique: jest.fn(),
     },
@@ -55,6 +55,7 @@ const mockPrisma = prisma as jest.Mocked<typeof prisma>
 
 const makeNormalizedJob = (overrides: Partial<NormalizedJob> = {}): NormalizedJob => ({
   jobHash: 'abc123hash',
+  fuzzyHash: 'fuzzyhash_senior_backend_engineer_stripe_remote',
   title: 'Senior Backend Engineer',
   company: 'Stripe',
   source: 'greenhouse',
@@ -68,6 +69,8 @@ const makeNormalizedJob = (overrides: Partial<NormalizedJob> = {}): NormalizedJo
   sourceUrl: 'https://greenhouse.io/stripe/jobs/123',
   postedAt: new Date('2024-01-15'),
   salaryRange: '$180k - $250k',
+  category: 'tech',   // required by updated NormalizedJob type
+  country: 'global',  // required by updated NormalizedJob type
   ...overrides,
 })
 
@@ -87,28 +90,45 @@ const makeJobDbRow = (overrides = {}) => ({
   postedAt: new Date('2024-01-15'),
   createdAt: new Date('2024-01-15'),
   atsScores: [],
+  category: 'tech',   // intelligence layer field
+  country: 'global',  // intelligence layer field
   ...overrides,
 })
 
 // ─── scoreJob() Tests ──────────────────────────────────────────────────────────
+//
+// NEW FORMULA (B16 intelligence layer):
+//   Role match:    0–30 pts  (expanded via ROLE_SYNONYMS)
+//   Skills match:  0–40 pts  (8 pts per skill, capped at 40 — need 5+ skills to max out)
+//   Remote pref:   0–15 pts  (15 for perfect match, 7 for 'any', 0 for mismatch)
+//   Country match: 0–10 pts  (Nigerian user + Nigerian job, or global user + global job)
+//   Recency bonus: 0–5 pts   (job posted < 3 days ago)
+//   Max total: 100 pts
 
 describe('scoreJob()', () => {
-  it('should return 100 for a perfect match (role + all skills + remote pref)', () => {
+  it('should return 100 for a perfect match (role + 5 skills + remote + country + recency)', () => {
+    // Perfect 100 requires all 5 signal groups to score their maximum:
+    //   role:     30 pts (frontend via synonym expansion matches 'react engineer')
+    //   skills:   40 pts (5 skills × 8 = 40, hits the cap)
+    //   remote:   15 pts (user wants remote, job is remote)
+    //   country:  10 pts (Nigerian user + Nigerian job)
+    //   recency:   5 pts (posted within last 3 days)
     const job = {
-      title: 'Senior Backend Engineer',
-      techStack: ['Python', 'PostgreSQL', 'Redis'],
+      title: 'React Engineer',           // 'react' is in frontend synonyms → role match
+      techStack: ['React', 'TypeScript', 'Node.js', 'PostgreSQL', 'AWS'],
       remote: true,
-      description: 'Backend role with Python, PostgreSQL, Redis',
+      postedAt: new Date(),              // today → recency bonus triggers
+      country: 'nigeria' as string,
     }
     const profile = {
-      roles: ['Backend Engineer'],
-      skills: ['Python', 'PostgreSQL', 'Redis'],
+      roles: ['frontend developer'],     // expands to include 'react' → matches title
+      skills: ['React', 'TypeScript', 'Node.js', 'PostgreSQL', 'AWS'],
       remotePref: 'remote',
-      location: 'US',
+      location: 'Lagos, Nigeria',        // Nigerian city → isUserNigerian = true
     }
 
     const score = scoreJob(job, profile)
-    // Role match: 40, Skills: 3/3 × 40 = 40, Remote: 20 → 100
+    // role(30) + skills(40) + remote(15) + country(10) + recency(5) = 100
     expect(score).toBe(100)
   })
 
@@ -117,59 +137,70 @@ describe('scoreJob()', () => {
       title: 'Marketing Manager',
       techStack: ['Salesforce', 'HubSpot'],
       remote: false,
-      description: 'Marketing role',
+      postedAt: new Date('2022-01-01'), // old job — no recency bonus
+      country: 'global' as string,
     }
     const profile = {
       roles: ['Backend Engineer'],
       skills: ['Python', 'PostgreSQL'],
-      remotePref: 'remote', // wants remote but job is not
-      location: 'US',
+      remotePref: 'remote', // wants remote but job is not → mismatch = 0
+      location: 'Lagos, Nigeria',       // Nigerian user + global job → no country bonus
     }
 
     const score = scoreJob(job, profile)
-    // Role: 0, Skills: 0/2 × 40 = 0, Remote: mismatch = 0 → 0
+    // Role: 0 (no synonym match), Skills: 0, Remote: mismatch = 0, Country: 0, Recency: 0 → 0
     expect(score).toBe(0)
   })
 
   it('should give partial score for partial skill match', () => {
+    // New formula: skills earn 8 pts each (not a ratio).
+    // 1 skill match = 8 pts (not proportional to total skills).
     const job = {
-      title: 'Backend Engineer', // matches role → 40 pts
-      techStack: ['Python', 'Docker'], // user has Python only → 1/2 match
+      title: 'Backend Developer',   // 'developer' is in 'software' synonyms → role match (30)
+      techStack: ['Python', 'Docker'],
       remote: false,
-      description: 'Backend role',
+      postedAt: new Date('2022-01-01'), // old — no recency
+      country: undefined as string | undefined,
     }
     const profile = {
-      roles: ['Backend Engineer'],
-      skills: ['Python', 'PostgreSQL'], // 1 out of 2 matches
-      remotePref: 'any', // flexible → 10 pts
+      roles: ['Backend Engineer'],  // 'backend' synonym group contains 'back-end', 'api engineer', etc.
+      skills: ['Python', 'PostgreSQL'], // Python matches, PostgreSQL does not
+      remotePref: 'any',           // flexible → 7 pts
       location: null,
     }
 
     const score = scoreJob(job, profile)
-    // Role: 40, Skills: 1/2 × 40 = 20, Remote (any): 10 → 70
-    expect(score).toBe(70)
+    // Role: 30 (backend synonym matches 'backend developer' in title)
+    // Skills: 1 match × 8 = 8
+    // Remote (any): 7
+    // Country: 0 (no location)
+    // Recency: 0 (old job)
+    // Total: 30 + 8 + 7 = 45
+    expect(score).toBe(45)
   })
 
-  it('should give 20 pts for remote preference match (both sides)', () => {
-    const remoteJob = { title: 'Engineer', techStack: [], remote: true, description: '' }
-    const onsiteJob = { title: 'Engineer', techStack: [], remote: false, description: '' }
+  it('should give 15 pts for remote preference match (both sides)', () => {
+    // scoreJob now requires postedAt — use a fixed old date to avoid recency bonus
+    const oldDate = new Date('2022-01-01')
+    const remoteJob = { title: 'Engineer', techStack: [], remote: true, postedAt: oldDate }
+    const onsiteJob = { title: 'Engineer', techStack: [], remote: false, postedAt: oldDate }
 
     const remoteProfile = { roles: [], skills: [], remotePref: 'remote', location: null }
     const onsiteProfile = { roles: [], skills: [], remotePref: 'onsite', location: null }
 
-    // Remote user + remote job = 20
-    expect(scoreJob(remoteJob, remoteProfile)).toBe(20)
-    // Onsite user + onsite job = 20
-    expect(scoreJob(onsiteJob, onsiteProfile)).toBe(20)
+    // Remote user + remote job = 15
+    expect(scoreJob(remoteJob, remoteProfile)).toBe(15)
+    // Onsite user + onsite job = 15
+    expect(scoreJob(onsiteJob, onsiteProfile)).toBe(15)
     // Remote user + onsite job = 0 (mismatch)
     expect(scoreJob(onsiteJob, remoteProfile)).toBe(0)
   })
 
-  it('should give 10 pts for flexible remote preference', () => {
-    const job = { title: 'Engineer', techStack: [], remote: true, description: '' }
+  it('should give 7 pts for flexible remote preference', () => {
+    const job = { title: 'Engineer', techStack: [], remote: true, postedAt: new Date('2022-01-01') }
     const profile = { roles: [], skills: [], remotePref: 'any', location: null }
-
-    expect(scoreJob(job, profile)).toBe(10)
+    // 'any' pref → 7 pts (not 10 as before — reduced to make room for country signal)
+    expect(scoreJob(job, profile)).toBe(7)
   })
 
   it('should handle empty profile gracefully without throwing', () => {
@@ -177,27 +208,118 @@ describe('scoreJob()', () => {
       title: 'Software Engineer',
       techStack: ['Python'],
       remote: true,
-      description: 'A role',
+      postedAt: new Date('2022-01-01'),
     }
     const emptyProfile = { roles: [], skills: [], remotePref: 'any', location: null }
 
     // Should not throw — just return the remote preference score
     expect(() => scoreJob(job, emptyProfile)).not.toThrow()
-    expect(scoreJob(job, emptyProfile)).toBe(10) // only remote flex match
+    // 'any' pref = 7 pts, no role/skills, no location for country check
+    expect(scoreJob(job, emptyProfile)).toBe(7)
+  })
+
+  it('should use ROLE_SYNONYMS to match "frontend developer" against "React Engineer"', () => {
+    // This is the key improvement in B16 — synonym expansion catches role variants
+    const job = {
+      title: 'React Engineer',   // does NOT contain 'frontend developer' literally
+      techStack: [],
+      remote: false,
+      postedAt: new Date('2022-01-01'),
+    }
+    const profile = {
+      roles: ['frontend developer'],  // 'frontend' → expands to include 'react'
+      skills: [],
+      remotePref: 'onsite',          // matches → 15 pts
+      location: null,
+    }
+
+    const score = scoreJob(job, profile)
+    // Role: 30 (via synonym expansion: 'react' is in frontend synonyms)
+    // Remote: 15 (onsite pref + non-remote job)
+    // Total: 45
+    expect(score).toBe(45)
+  })
+
+  it('should award country match bonus for Nigerian user + Nigerian job', () => {
+    const job = {
+      title: 'Engineer',
+      techStack: [],
+      remote: false,
+      postedAt: new Date('2022-01-01'),
+      country: 'nigeria' as string,
+    }
+    const profile = {
+      roles: [],
+      skills: [],
+      remotePref: 'onsite',          // 15 pts (onsite match)
+      location: 'Lagos, Nigeria',    // Nigerian city → isUserNigerian = true
+    }
+
+    const score = scoreJob(job, profile)
+    // Remote: 15, Country bonus: 10 → total: 25
+    expect(score).toBe(25)
+  })
+
+  it('should award country match bonus for global user + global job', () => {
+    const job = {
+      title: 'Engineer',
+      techStack: [],
+      remote: false,
+      postedAt: new Date('2022-01-01'),
+      country: 'global' as string,
+    }
+    const profile = {
+      roles: [],
+      skills: [],
+      remotePref: 'onsite',          // 15 pts
+      location: 'San Francisco, US', // not a Nigerian city → isUserNigerian = false
+    }
+
+    const score = scoreJob(job, profile)
+    // Remote: 15, Country (global user + global job): 10 → total: 25
+    expect(score).toBe(25)
+  })
+
+  it('should give recency bonus of 5 pts for job posted within last 3 days', () => {
+    const recentJob = {
+      title: 'Engineer',
+      techStack: [],
+      remote: false,
+      postedAt: new Date(), // posted now — daysOld < 3 → +5
+    }
+    const oldJob = {
+      title: 'Engineer',
+      techStack: [],
+      remote: false,
+      postedAt: new Date('2022-01-01'), // 3+ years ago — no recency bonus
+    }
+    const profile = { roles: [], skills: [], remotePref: 'onsite', location: null }
+
+    // Old job: 15 pts (onsite match only)
+    expect(scoreJob(oldJob, profile)).toBe(15)
+    // Recent job: 15 + 5 = 20 pts (onsite + recency)
+    expect(scoreJob(recentJob, profile)).toBe(20)
   })
 
   it('should be case-insensitive for role matching', () => {
-    const job = { title: 'SENIOR BACKEND ENGINEER', techStack: [], remote: false, description: '' }
+    const job = {
+      title: 'SENIOR BACKEND ENGINEER',
+      techStack: [],
+      remote: false,
+      postedAt: new Date('2022-01-01'),
+    }
     const profile = {
-      roles: ['backend engineer'],
+      roles: ['backend engineer'],   // lowercase — should still match UPPERCASE title
       skills: [],
       remotePref: 'onsite',
       location: null,
     }
 
     const score = scoreJob(job, profile)
-    // Role match (case-insensitive): 40, Remote onsite match: 20 → 60
-    expect(score).toBe(60)
+    // Role match (case-insensitive via toLowerCase): 30
+    // Remote onsite match: 15
+    // Total: 45
+    expect(score).toBe(45)
   })
 
   it('should never exceed 100', () => {
@@ -205,13 +327,14 @@ describe('scoreJob()', () => {
       title: 'Senior Backend Engineer',
       techStack: ['Python', 'PostgreSQL', 'Redis', 'AWS', 'Docker'],
       remote: true,
-      description: '',
+      postedAt: new Date(), // recent
+      country: 'nigeria' as string,
     }
     const profile = {
       roles: ['Backend Engineer', 'Senior Engineer'],
       skills: ['Python', 'PostgreSQL', 'Redis', 'AWS', 'Docker'],
       remotePref: 'remote',
-      location: null,
+      location: 'Lagos, Nigeria',
     }
 
     const score = scoreJob(job, profile)
@@ -227,71 +350,138 @@ describe('batchUpsert()', () => {
     jest.clearAllMocks()
   })
 
+  // Helper: mock the two findMany pre-checks returning no existing matches,
+  // then mock createMany returning the given count.
+  function mockCleanInsert(count: number) {
+    // First two findMany calls are the exact-hash and fuzzy-hash pre-checks.
+    // Return empty arrays to simulate no existing duplicates.
+    ;(mockPrisma.job.findMany as jest.Mock)
+      .mockResolvedValueOnce([]) // exact hash pre-check
+      .mockResolvedValueOnce([]) // fuzzy hash pre-check
+    ;(mockPrisma.job.createMany as jest.Mock).mockResolvedValue({ count })
+  }
+
   it('should return { inserted: 0, skipped: 0 } for empty array', async () => {
     const result = await batchUpsert([])
     expect(result).toEqual({ inserted: 0, skipped: 0 })
-    // Prisma should not be called at all for empty input
-    expect(mockPrisma.job.upsert).not.toHaveBeenCalled()
+    // No DB calls at all for empty input
+    expect(mockPrisma.job.findMany).not.toHaveBeenCalled()
+    expect(mockPrisma.job.createMany).not.toHaveBeenCalled()
   })
 
-  it('should call prisma.job.upsert for each job in the batch', async () => {
+  it('should insert all jobs when none already exist in the DB', async () => {
     const jobs = [
-      makeNormalizedJob({ jobHash: 'hash1' }),
-      makeNormalizedJob({ jobHash: 'hash2' }),
-      makeNormalizedJob({ jobHash: 'hash3' }),
+      makeNormalizedJob({ jobHash: 'hash1', fuzzyHash: 'fuzzy1' }),
+      makeNormalizedJob({ jobHash: 'hash2', fuzzyHash: 'fuzzy2' }),
+      makeNormalizedJob({ jobHash: 'hash3', fuzzyHash: 'fuzzy3' }),
     ]
-
-    // Mock upsert to return a resolved value (simulating a successful DB write)
-    ;(mockPrisma.job.upsert as jest.Mock).mockResolvedValue({ id: 'clx_123' })
+    mockCleanInsert(3)
 
     const result = await batchUpsert(jobs)
 
-    // Should have called upsert 3 times (one per job)
-    expect(mockPrisma.job.upsert).toHaveBeenCalledTimes(3)
-    // All 3 succeeded → inserted = 3
-    expect(result.inserted).toBe(3)
+    // 2 findMany pre-checks + 1 createMany
+    expect(mockPrisma.job.findMany).toHaveBeenCalledTimes(2)
+    expect(mockPrisma.job.createMany).toHaveBeenCalledTimes(1)
+    expect(result).toEqual({ inserted: 3, skipped: 0 })
   })
 
-  it('should continue processing when one upsert fails', async () => {
+  it('should skip jobs whose exact jobHash already exists in the DB', async () => {
     const jobs = [
-      makeNormalizedJob({ jobHash: 'hash1' }),
-      makeNormalizedJob({ jobHash: 'hash2' }),
-      makeNormalizedJob({ jobHash: 'hash3' }),
+      makeNormalizedJob({ jobHash: 'existing_hash', fuzzyHash: 'fuzzy1' }),
+      makeNormalizedJob({ jobHash: 'new_hash', fuzzyHash: 'fuzzy2' }),
     ]
 
-    // Second upsert fails, others succeed
-    ;(mockPrisma.job.upsert as jest.Mock)
-      .mockResolvedValueOnce({ id: 'clx_1' })
-      .mockRejectedValueOnce(new Error('Unique constraint failed'))
-      .mockResolvedValueOnce({ id: 'clx_3' })
+    // Exact pre-check returns 'existing_hash' as already stored
+    ;(mockPrisma.job.findMany as jest.Mock)
+      .mockResolvedValueOnce([{ jobHash: 'existing_hash' }]) // exact match found
+      .mockResolvedValueOnce([]) // no fuzzy match
+    ;(mockPrisma.job.createMany as jest.Mock).mockResolvedValue({ count: 1 })
 
     const result = await batchUpsert(jobs)
 
-    // All 3 were attempted
-    expect(mockPrisma.job.upsert).toHaveBeenCalledTimes(3)
-    // 2 succeeded, 1 failed — inserted should be 2
-    expect(result.inserted).toBe(2)
+    // Only 1 job should reach createMany
+    const createManyCall = (mockPrisma.job.createMany as jest.Mock).mock.calls[0][0]
+    expect(createManyCall.data).toHaveLength(1)
+    expect(createManyCall.data[0].jobHash).toBe('new_hash')
+    expect(result).toEqual({ inserted: 1, skipped: 1 })
   })
 
-  it('should pass correct create fields to prisma upsert', async () => {
+  it('should skip jobs whose fuzzyHash already exists in the DB (same role, different wording)', async () => {
+    // Simulates: "Frontend Developer" at Stripe from Lever arriving after
+    // "Frontend Engineer" at Stripe from Greenhouse was already stored.
+    // Both canonicalize to the same fuzzyHash.
+    const existingFuzzy = 'frontend_engineer_stripe_remote'
+    const job = makeNormalizedJob({ jobHash: 'new_exact_hash', fuzzyHash: existingFuzzy })
+
+    ;(mockPrisma.job.findMany as jest.Mock)
+      .mockResolvedValueOnce([]) // no exact match
+      .mockResolvedValueOnce([{ fuzzyHash: existingFuzzy }]) // fuzzy match found
+    ;(mockPrisma.job.createMany as jest.Mock).mockResolvedValue({ count: 0 })
+
+    const result = await batchUpsert([job])
+
+    // createMany should be called with empty data (nothing to insert)
+    expect(result).toEqual({ inserted: 0, skipped: 1 })
+  })
+
+  it('should deduplicate within-batch fuzzy duplicates (same role from two sources in same run)', async () => {
+    // Both jobs have different exact hashes (different wording) but the same
+    // fuzzyHash (same canonical role). Neither exists in the DB yet — the
+    // pre-check returns empty. But within the batch, only the first should be kept.
+    const sharedFuzzy = 'frontend_engineer_stripe_remote'
+    const jobs = [
+      makeNormalizedJob({ jobHash: 'greenhouse_hash', fuzzyHash: sharedFuzzy }),
+      makeNormalizedJob({ jobHash: 'lever_hash', fuzzyHash: sharedFuzzy }),
+    ]
+
+    ;(mockPrisma.job.findMany as jest.Mock)
+      .mockResolvedValueOnce([]) // no exact matches in DB
+      .mockResolvedValueOnce([]) // no fuzzy matches in DB
+    ;(mockPrisma.job.createMany as jest.Mock).mockResolvedValue({ count: 1 })
+
+    const result = await batchUpsert(jobs)
+
+    // Only 1 of the 2 should reach createMany (the first one seen)
+    const createManyCall = (mockPrisma.job.createMany as jest.Mock).mock.calls[0][0]
+    expect(createManyCall.data).toHaveLength(1)
+    expect(createManyCall.data[0].jobHash).toBe('greenhouse_hash')
+    expect(result).toEqual({ inserted: 1, skipped: 1 })
+  })
+
+  it('should pass fuzzyHash and all required fields to createMany', async () => {
     const job = makeNormalizedJob()
-    ;(mockPrisma.job.upsert as jest.Mock).mockResolvedValue({ id: 'clx_123' })
+    mockCleanInsert(1)
 
     await batchUpsert([job])
 
-    const upsertCall = (mockPrisma.job.upsert as jest.Mock).mock.calls[0][0]
+    const createManyCall = (mockPrisma.job.createMany as jest.Mock).mock.calls[0][0]
+    const created = createManyCall.data[0]
 
-    // Verify the where clause uses jobHash for deduplication
-    expect(upsertCall.where).toEqual({ jobHash: job.jobHash })
-    // Verify update is empty (first-source-wins)
-    expect(upsertCall.update).toEqual({})
-    // Verify create includes all required fields
-    expect(upsertCall.create).toMatchObject({
+    expect(created).toMatchObject({
+      jobHash: job.jobHash,
+      fuzzyHash: job.fuzzyHash,
       title: job.title,
       company: job.company,
       source: job.source,
       remote: job.remote,
+      // Intelligence fields must be present in every createMany payload
+      category: job.category,
+      country: job.country,
     })
+    // Safety net flag must be present
+    expect(createManyCall.skipDuplicates).toBe(true)
+  })
+
+  it('should gracefully handle createMany failure without throwing', async () => {
+    const jobs = [makeNormalizedJob({ jobHash: 'hash1', fuzzyHash: 'fuzzy1' })]
+
+    ;(mockPrisma.job.findMany as jest.Mock)
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([])
+    ;(mockPrisma.job.createMany as jest.Mock).mockRejectedValue(new Error('DB connection lost'))
+
+    // Should not throw — batchUpsert catches createMany errors and continues
+    await expect(batchUpsert(jobs)).resolves.not.toThrow()
   })
 })
 

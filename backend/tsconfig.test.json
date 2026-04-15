@@ -1,0 +1,11 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    // Include jest globals (describe, it, expect, jest, beforeEach, etc.)
+    // without needing an import in every test file.
+    "types": ["jest", "node"],
+    // Tests use require() for jest.mock() — commonjs resolves this correctly
+    "moduleResolution": "node"
+  },
+  "include": ["src/**/*", "tests/**/*"]
+}

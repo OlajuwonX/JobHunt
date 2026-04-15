@@ -73,7 +73,9 @@ export type JobSource =
  *   NormalizedJob = cleaned, enriched, validated data ready for the DB
  */
 export interface NormalizedJob {
-  jobHash: string // SHA-256 deduplication fingerprint
+  jobHash: string // Exact SHA-256 fingerprint: title|company|location (raw, lowercased)
+  fuzzyHash: string // Fuzzy SHA-256 fingerprint: canonicalTitle|canonicalCompany|canonicalLocation
+  // fuzzyHash catches same-role variants: "Frontend Engineer" ≈ "Frontend Developer", "Jr" ≈ "Junior"
   title: string
   company: string
   source: JobSource
@@ -86,6 +88,8 @@ export interface NormalizedJob {
   sourceUrl: string | null // listing page URL (may differ from applyUrl)
   postedAt: Date
   salaryRange: string | null // human-readable salary string or null
+  category: string // 'tech' | 'finance' | 'sales' | 'marketing' | 'healthcare' | 'design' | 'operations' | 'hr' | 'legal' | 'education' | 'other'
+  country: string  // 'nigeria' | 'global' — lowercase only for consistent DB queries
 }
 
 /**
@@ -104,9 +108,10 @@ export interface JobFilters {
   limit?: number
   source?: JobSource
   remote?: boolean
-  q?: string // Full-text search on title and company (ILIKE)
-  category?: string // Job category filter
-  since?: Date // Filter jobs posted after this date
+  q?: string      // Full-text search on title and company (ILIKE)
+  category?: string // filter by job category ('tech' | 'finance' | 'sales' | etc.)
+  country?: string  // filter by job market: 'nigeria' | 'global'
+  since?: Date    // Filter jobs posted after this date
   minScore?: number // Filter by minimum match score
 }
 

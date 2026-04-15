@@ -26,6 +26,20 @@ dotenv.config()
 import { app } from './app'
 import { createSocketServer } from './utils/socket'
 
+// ─── Register Cron Jobs ────────────────────────────────────────────────────────
+// Importing these files causes them to self-register their cron schedules.
+// The cron jobs log their schedule on import so you can confirm they registered.
+//
+// fetchApiJobs.ts   → cron registered for daily 02:00 AM
+// fetchScraperJobs.ts → cron registered for daily 06:00 AM
+//
+// WHY IMPORT AT TOP LEVEL?
+// node-cron registers schedules when the module loads. We need them to load
+// exactly once at server startup — not on every request. Top-level imports
+// guarantee this.
+import { runIfEmpty } from './jobs/fetchApiJobs'
+import './jobs/fetchScraperJobs'
+
 // ─── Port Configuration ────────────────────────────────────────────────────────
 // Use PORT from .env if set, otherwise default to 4000
 // process.env values are always strings, so we cast to Number
@@ -35,10 +49,14 @@ const PORT = Number(process.env.PORT) || 4000
 // app.listen() starts accepting incoming connections
 // The callback runs once the server is ready
 const httpServer = app.listen(PORT, () => {
-  console.log(`\n🚀 JobHunt API is running`)
-  console.log(`   ➜ Local:   http://localhost:${PORT}`)
-  console.log(`   ➜ Health:  http://localhost:${PORT}/health`)
-  console.log(`   ➜ Env:     ${process.env.NODE_ENV || 'development'}\n`)
+  console.log(`\n JobHunt API is running`)
+  console.log(`   Local:   http://localhost:${PORT}`)
+  console.log(`   Health:  http://localhost:${PORT}/health`)
+  console.log(`   Env:     ${process.env.NODE_ENV || 'development'}\n`)
+
+  // Check if the jobs table is empty and trigger an initial fetch if needed.
+  // This makes the dev experience much better — no waiting until 02:00 AM for data.
+  runIfEmpty().catch(console.error)
 })
 
 // ─── Attach Socket.io ─────────────────────────────────────────────────────────

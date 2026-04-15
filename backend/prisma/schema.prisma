@@ -184,15 +184,27 @@ model Job {
   requirements String[] // bullet-pointed requirements extracted from the description
   techStack    String[] // tech tags we extract: ["React", "Node.js", "AWS", ...]
   applyUrl     String // the actual application link
-  postedAt     DateTime // when the job was posted on the source platform
-  createdAt    DateTime @default(now())
+
+  sourceUrl   String?
+  // The original listing page URL — sometimes different from applyUrl.
+  // Example: on Jobberman the listing is /jobs/slug but apply redirects to external site.
+  // We store both so users can always reach the listing even if the apply URL breaks.
+
+  salaryRange String?
+  // Human-readable salary string as the source provides it.
+  // e.g. "$80,000 - $120,000" or "£50k–£70k" or null if not specified.
+  // We store it as-is (not parsed to numbers) because formats vary wildly across sources.
+
+  postedAt  DateTime // when the job was posted on the source platform
+  createdAt DateTime @default(now())
 
   // Relations
   applications Application[]
   atsScores    AtsScore[]
 
   @@index([source]) // fast filter: show me only Greenhouse jobs
-  @@index([postedAt]) // fast sort: newest first
+  @@index([postedAt(sort: Desc)]) // fast sort: newest first — Desc means newest rows come first
+  @@index([remote]) // fast filter: show me only remote jobs
   @@map("jobs")
 }
 

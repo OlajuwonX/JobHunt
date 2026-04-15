@@ -47,29 +47,67 @@ export interface PaginatedResponse<T> {
 
 // ─── Job Types ─────────────────────────────────────────────────────────────────
 
-// The raw job data after normalizing from Greenhouse or Lever
+/**
+ * All supported job sources. Add new sources here as we add new adapters.
+ * This union type is used for Zod validation and Prisma queries.
+ */
+export type JobSource =
+  | 'greenhouse'
+  | 'lever'
+  | 'remotive'
+  | 'arbeitnow'
+  | 'jobicy'
+  | 'themuse'
+  | 'weworkremotely'
+  | 'jobberman'
+  | 'myjobmag'
+  | 'hotnigerianjobs'
+  | 'ngcareers'
+
+/**
+ * The cleaned, ready-for-database job shape produced by the normalizer.
+ * This is what goes into the Prisma upsert — it maps directly to the Job model.
+ *
+ * The difference between NormalizedJob and RawJob:
+ *   RawJob   = data as-is from the source (some fields may be missing, messy, or HTML)
+ *   NormalizedJob = cleaned, enriched, validated data ready for the DB
+ */
 export interface NormalizedJob {
+  jobHash: string // SHA-256 deduplication fingerprint
   title: string
   company: string
-  source: 'greenhouse' | 'lever'
+  source: JobSource
   location: string | null
   remote: boolean
-  description: string
-  requirements: string[]
-  techStack: string[]
+  description: string // plain text, cleaned, max 12,000 chars
+  requirements: string[] // extracted bullet points, max 12 items
+  techStack: string[] // tech/business keywords found in description
   applyUrl: string
+  sourceUrl: string | null // listing page URL (may differ from applyUrl)
   postedAt: Date
+  salaryRange: string | null // human-readable salary string or null
+}
+
+/**
+ * A job with an optional match score appended for the current user.
+ * The score is computed in-memory by scoreJob() — never stored with this type.
+ */
+export interface JobWithScore extends NormalizedJob {
+  id: string
+  createdAt: Date
+  matchScore?: number // 0–100, computed in-memory based on user profile
 }
 
 // Query params for GET /api/v1/jobs
 export interface JobFilters {
   page?: number
   limit?: number
-  source?: 'greenhouse' | 'lever'
-  status?: 'applied' | 'saved' | 'none'
-  minScore?: number
+  source?: JobSource
   remote?: boolean
-  search?: string
+  q?: string // Full-text search on title and company (ILIKE)
+  category?: string // Job category filter
+  since?: Date // Filter jobs posted after this date
+  minScore?: number // Filter by minimum match score
 }
 
 // ─── User / Auth Types ─────────────────────────────────────────────────────────
@@ -114,12 +152,21 @@ export interface DashboardStats {
     thisMonth: number
     total: number
   }
-  bySource: {
-    greenhouse: number
-    lever: number
-  }
+  // Count of jobs grouped by source — supports all 11 sources
+  bySource: Partial<Record<JobSource, number>>
   // Daily chart data for the last 30 days (line chart)
   dailyChart: Array<{ date: string; count: number }>
   // Monthly chart data for the last 12 months (bar chart)
   monthlyChart: Array<{ month: string; count: number }>
+}
+
+// ─── Pagination Metadata ──────────────────────────────────────────────────────
+
+export interface PaginationMeta {
+  page: number
+  limit: number
+  total: number
+  totalPages: number
+  hasNext: boolean
+  hasPrev: boolean
 }

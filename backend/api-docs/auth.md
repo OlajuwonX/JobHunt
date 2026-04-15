@@ -22,7 +22,7 @@ Get a CSRF token. Call this when the app first loads.
 
 ```json
 {
-  "success": true,
+  "success": true
 }
 ```
 
@@ -56,8 +56,10 @@ Create a new user account.
 **Required headers:**
 
 ```
+
 X-CSRF-Token: <token from csrf_token cookie>
-```
+
+````
 
 **Success (201):**
 
@@ -68,7 +70,7 @@ X-CSRF-Token: <token from csrf_token cookie>
     "message": "Account created successfully. Please check your email to verify your account."
   }
 }
-```
+````
 
 **Errors:**
 | Status | Error |
@@ -96,7 +98,7 @@ Authenticate with email and password.
 ```json
 {
   "email": "user@example.com",
-  "password": "",
+  "password": ""
 }
 ```
 
@@ -110,7 +112,7 @@ X-CSRF-Token: <token from csrf_token cookie>
 
 ```json
 {
-  "success": true,
+  "success": true
 }
 ```
 
@@ -193,7 +195,7 @@ X-CSRF-Token: <token from csrf_token cookie>
 
 ```json
 {
-  "success": true,
+  "success": true
 }
 ```
 
@@ -260,7 +262,7 @@ Authorization: Bearer <accessToken>
 
 ```json
 {
-  "success": true,
+  "success": true
 }
 ```
 
@@ -288,4 +290,3 @@ Every authentication event is written to the `auth_logs` table:
 | `email_verified`   | Account activated via email link               |
 
 ---
-

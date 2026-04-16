@@ -135,7 +135,17 @@ const TECH_KEYWORDS: string[] = [
 // Short keywords that are also common English words — match only the exact capitalised
 // form as it appears in text (e.g. "Go" in a tech JD vs "go" in plain prose).
 const CASE_SENSITIVE_KEYWORDS = new Set([
-  'Go', 'Rust', 'Vue', 'Gin', 'Fiber', 'Scala', 'Swift', 'Kotlin', 'React', 'Angular', 'Svelte',
+  'Go',
+  'Rust',
+  'Vue',
+  'Gin',
+  'Fiber',
+  'Scala',
+  'Swift',
+  'Kotlin',
+  'React',
+  'Angular',
+  'Svelte',
 ])
 
 // Escape special regex characters so keyword strings can be used safely in RegExp.

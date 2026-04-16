@@ -73,7 +73,7 @@ jobs:
   build-frontend:
     name: Build (Frontend)
     runs-on: ubuntu-latest
-    needs: lint-frontend  # only build if lint passed
+    needs: lint-frontend # only build if lint passed
 
     defaults:
       run:

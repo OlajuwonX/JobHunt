@@ -18,16 +18,16 @@ A unified job aggregation and tracking platform that removes fragmentation, elim
 
 ## Features
 
-| Feature | Description |
-|---------|-------------|
-| Unified Job Feed | Jobs from multiple sources, deduplicated via job hash |
-| ATS Scoring | AI-powered match score between your resume and job requirements |
-| Application Tracking | Track status: Applied, Saved, Rejected, Offer |
-| Real-Time Alerts | Socket.io push notifications for new matching jobs |
-| Dashboard Analytics | Daily line chart + monthly bar chart |
-| Profile & Resume | Upload resume, set roles, location, skills, remote preference |
-| Secure Auth | JWT + HTTP-only cookies + email verification |
-| Dark / Light Mode | System-aware theme with manual toggle |
+| Feature              | Description                                                     |
+| -------------------- | --------------------------------------------------------------- |
+| Unified Job Feed     | Jobs from multiple sources, deduplicated via job hash           |
+| ATS Scoring          | AI-powered match score between your resume and job requirements |
+| Application Tracking | Track status: Applied, Saved, Rejected, Offer                   |
+| Real-Time Alerts     | Socket.io push notifications for new matching jobs              |
+| Dashboard Analytics  | Daily line chart + monthly bar chart                            |
+| Profile & Resume     | Upload resume, set roles, location, skills, remote preference   |
+| Secure Auth          | JWT + HTTP-only cookies + email verification                    |
+| Dark / Light Mode    | System-aware theme with manual toggle                           |
 
 ---
 
@@ -56,6 +56,7 @@ Browser (Next.js)
 ## Tech Stack
 
 ### Frontend (`/frontend`)
+
 - **Next.js 16** (App Router) + **TypeScript**
 - **Tailwind CSS v4** + **shadcn/ui** (component library)
 - **TanStack Query v5** (server state)
@@ -67,6 +68,7 @@ Browser (Next.js)
 - **sonner** (toast notifications)
 
 ### Backend (`/backend`)
+
 - **Node.js 20** + **Express** + **TypeScript**
 - **Prisma ORM** + **PostgreSQL** (Neon)
 - **socket.io** (WebSocket server)
@@ -79,6 +81,7 @@ Browser (Next.js)
 - **Sentry** (error monitoring)
 
 ### DevOps
+
 - **Docker** + **docker-compose** (local dev + production)
 - **GitHub Actions** (CI/CD: lint → test → build → deploy)
 - **Jest** + **Supertest** (backend tests)
@@ -125,6 +128,7 @@ docker-compose up --build
 ```
 
 This starts:
+
 - `frontend` at http://localhost:3000
 - `backend` at http://localhost:4000
 - `postgres` at localhost:5432
@@ -208,14 +212,14 @@ services:
       POSTGRES_USER: user
       POSTGRES_PASSWORD: password
     ports:
-      - "5432:5432"
+      - '5432:5432'
     volumes:
       - pgdata:/var/lib/postgresql/data
 
   backend:
     build: ./backend
     ports:
-      - "4000:4000"
+      - '4000:4000'
     env_file: ./backend/.env
     depends_on:
       - postgres
@@ -225,7 +229,7 @@ services:
   frontend:
     build: ./frontend
     ports:
-      - "3000:3000"
+      - '3000:3000'
     env_file: ./frontend/.env.local
     depends_on:
       - backend
@@ -235,6 +239,7 @@ volumes:
 ```
 
 **How Docker works in this project:**
+
 - Each service (frontend, backend, postgres) runs in its own isolated container
 - Containers communicate over a shared Docker network by service name (e.g., `backend` resolves to the backend container)
 - Volumes persist database data between restarts
@@ -285,25 +290,25 @@ Workflow file: [.github/workflows/ci.yml](.github/workflows/ci.yml)
 
 ## Project Phases
 
-| Phase | Focus | Status |
-|-------|-------|--------|
-| Phase 1 | Foundation: auth, infra, Docker, CI/CD | Planned |
-| Phase 2 | Job Pipeline: aggregation, deduplication, ATS scoring | Planned |
+| Phase   | Focus                                                      | Status  |
+| ------- | ---------------------------------------------------------- | ------- |
+| Phase 1 | Foundation: auth, infra, Docker, CI/CD                     | Planned |
+| Phase 2 | Job Pipeline: aggregation, deduplication, ATS scoring      | Planned |
 | Phase 3 | User Features: profile, tracking, dashboard, notifications | Planned |
-| Phase 4 | Quality: tests, security audit, production deploy | Planned |
+| Phase 4 | Quality: tests, security audit, production deploy          | Planned |
 
 ---
 
 ## Deployment (Zero Cost)
 
-| Service | Platform | Cost |
-|---------|----------|------|
-| Frontend | [Vercel](https://vercel.com) | Free |
-| Backend | [Render](https://render.com) | Free |
-| Database | [Neon](https://neon.tech) | Free (512 MB) |
-| Files | [Cloudinary](https://cloudinary.com) | Free (25 GB) |
-| Email | Gmail SMTP | Free (500/day) |
-| Monitoring | [Sentry](https://sentry.io) | Free (5k errors) |
+| Service    | Platform                             | Cost             |
+| ---------- | ------------------------------------ | ---------------- |
+| Frontend   | [Vercel](https://vercel.com)         | Free             |
+| Backend    | [Render](https://render.com)         | Free             |
+| Database   | [Neon](https://neon.tech)            | Free (512 MB)    |
+| Files      | [Cloudinary](https://cloudinary.com) | Free (25 GB)     |
+| Email      | Gmail SMTP                           | Free (500/day)   |
+| Monitoring | [Sentry](https://sentry.io)          | Free (5k errors) |
 
 ---
 

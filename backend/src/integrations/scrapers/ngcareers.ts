@@ -1,192 +1,178 @@
 /**
- * NgCareers Scraper (src/integrations/scrapers/ngcareers.ts)
+ * NgCareers Scraper — Extended Jobberman Pages (src/integrations/scrapers/ngcareers.ts)
  *
- * NgCareers (ngcareers.com) is a Nigerian job board that covers professional and
- * graduate-level roles across all industries. It's known for mid-level to senior
- * professional jobs in Nigeria, including banking, consulting, NGOs, and tech.
+ * NgCareers (ngcareers.com) permanently redirects to Jobberman (jobberman.com)
+ * as of 2026. The domain was acquired by Jobberman.
  *
- * WHAT MAKES NGCAREERS DIFFERENT?
- * - Strong coverage of entry-level and graduate trainee positions
- * - Non-profit and development sector jobs (NGOs, UN agencies, international orgs)
- * - Professional services (consulting, law, accounting)
- * These complement Jobberman (which focuses more on corporate/tech roles).
+ * This scraper has been updated to scrape additional Jobberman pages (4–6) so we
+ * get MORE Nigerian jobs beyond what the primary Jobberman scraper fetches (pages 1–3).
+ * Jobs are stored with source="jobberman" since that is the actual data source.
  *
- * RESILIENCE RULES (mandatory for all scrapers):
+ * WHY KEEP THIS SEPARATE SCRAPER?
+ * Each page of Jobberman has ~16 different job listings. Splitting across two scrapers
+ * lets us collect more jobs while staying within polite request limits per scraper.
+ *
+ * RESILIENCE RULES:
  * 1. Wrap ENTIRE function in try/catch — return [] on any error
  * 2. Zero-result guard with warn log
- * 3. Skip malformed individual cards silently
+ * 3. Skip malformed individual items silently
  * 4. Never throw
  * 5. Sleep 2000ms between page requests
- *
- * NOTE: Selectors here are best-effort based on common patterns.
- * If this scraper returns 0 results, inspect the live site HTML and update selectors.
- * The zero-result guard will catch this safely — it won't crash the system.
  */
 
 import axios from 'axios'
 import * as cheerio from 'cheerio'
 import { JobAdapter, RawJob } from '../types'
 import { sleep } from '../../utils/sleep'
-import { stripHtml } from '../../utils/stripHtml'
 
-const NGCAREERS_BASE = 'https://ngcareers.com'
-const PAGES_TO_SCRAPE = 3
+const JOBBERMAN_BASE = 'https://www.jobberman.com'
+// Pages 4–6 to complement the Jobberman scraper which covers pages 1–3
+const START_PAGE = 4
+const END_PAGE = 6
 
 const BROWSER_HEADERS = {
   'User-Agent':
-    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
   Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
   'Accept-Language': 'en-US,en;q=0.5',
   Connection: 'keep-alive',
 }
 
+/**
+ * Parse the __gtmDataLayer variable from the page HTML.
+ * Returns the items array from the view_item_list event, or [] on any error.
+ */
+function parseGtmItems(html: string): Array<{
+  item_name: string
+  affiliation: string
+  location_id: string
+  item_category: string
+}> {
+  try {
+    const match = html.match(/const __gtmDataLayer\s*=\s*(\[.*?\]);/s)
+    if (!match) return []
+
+    const data = JSON.parse(match[1]) as Array<{
+      event?: string
+      ecommerce?: {
+        items?: Array<{
+          item_name: string
+          affiliation: string
+          location_id: string
+          item_category: string
+        }>
+      }
+    }>
+
+    const listEvent = data.find((d) => d.event === 'view_item_list' && d.ecommerce?.items?.length)
+    return listEvent?.ecommerce?.items ?? []
+  } catch {
+    return []
+  }
+}
+
 export const ngcareersAdapter: JobAdapter = {
-  source: 'ngcareers',
+  // source remains "jobberman" since ngcareers.com now IS jobberman.com
+  source: 'jobberman',
 
   async fetch(): Promise<RawJob[]> {
-    // RESILIENCE RULE 1: Wrap entire function in try/catch
     try {
       const allJobs: RawJob[] = []
 
-      for (let page = 1; page <= PAGES_TO_SCRAPE; page++) {
+      for (let page = START_PAGE; page <= END_PAGE; page++) {
         try {
-          // NgCareers pagination format — may use ?page= or /page/N depending on their routing
-          const url = page === 1 ? `${NGCAREERS_BASE}/jobs` : `${NGCAREERS_BASE}/jobs?page=${page}`
+          const url = `${JOBBERMAN_BASE}/jobs?page=${page}`
 
           const response = await axios.get<string>(url, {
             headers: BROWSER_HEADERS,
-            timeout: 15000,
+            timeout: 20000,
           })
 
-          const $ = cheerio.load(response.data)
+          const html = response.data
+          const $ = cheerio.load(html)
 
-          // NOTE: Selectors here are best-effort based on common patterns.
-          // If this scraper returns 0 results, inspect the live site HTML and update selectors.
-          // The zero-result guard will catch this safely — it won't crash the system.
+          // Extract prerender listing URLs (unique, in order)
+          const listingUrls: string[] = []
+          $('link[rel="prerender"]').each((_i, el) => {
+            const href = $(el).attr('href') || ''
+            if (href.includes('/listings/') && !listingUrls.includes(href)) {
+              listingUrls.push(href)
+            }
+          })
 
-          // NgCareers typically lists jobs in cards or list items
-          const jobCards = $(
-            '.job-listing, .job-card, .job-item, article.job, li.job, ' +
-              '.vacancy, [class*="job-"], [class*="vacancy-"]'
-          )
+          // Extract job metadata from __gtmDataLayer
+          const gtmItems = parseGtmItems(html)
 
-          // RESILIENCE RULE 2: Zero-result guard
-          if (jobCards.length === 0) {
+          if (listingUrls.length === 0 || gtmItems.length === 0) {
             console.warn(
-              `[NgCareers] No job cards found on page ${page}. HTML structure may have changed. ` +
-                'Inspect the live site and update selectors in scrapers/ngcareers.ts'
+              `[NgCareers/Jobberman] Page ${page}: no data found ` +
+                `(${listingUrls.length} URLs, ${gtmItems.length} gtm items). ` +
+                'Jobberman may have changed their HTML structure.'
             )
             continue
           }
 
-          jobCards.each((_index, element) => {
+          const count = Math.min(listingUrls.length, gtmItems.length)
+
+          for (let i = 0; i < count; i++) {
             try {
-              const card = $(element)
+              const item = gtmItems[i]
+              const jobUrl = listingUrls[i]
 
-              // Extract title — try common selector patterns
-              const title =
-                card
-                  .find('h2, h3, .job-title, .title, a.job-link, a[href*="/jobs/"]')
-                  .first()
-                  .text()
-                  .trim() || ''
+              const title = item.item_name?.trim()
+              const company = item.affiliation?.trim()
+              const location = item.location_id?.trim() || 'Nigeria'
+              const category = item.item_category?.trim() || ''
 
-              // Extract company name
-              const company =
-                card
-                  .find('.company-name, .employer, .company, .recruiter, [class*="company"]')
-                  .first()
-                  .text()
-                  .trim() || ''
+              if (!title || !company) continue
 
-              // RESILIENCE RULE 3: Skip if title or company is missing
-              if (!title || !company) return
-
-              // Extract job URL
-              const relativeUrl =
-                card.find('a[href*="/jobs/"], a[href*="/job/"], a').first().attr('href') || ''
-
-              const jobUrl = relativeUrl.startsWith('http')
-                ? relativeUrl
-                : relativeUrl
-                  ? `${NGCAREERS_BASE}${relativeUrl}`
-                  : ''
-
-              if (!jobUrl || jobUrl === NGCAREERS_BASE) return
-
-              // Extract location
-              const location =
-                card
-                  .find('.location, .job-location, [class*="location"], .city')
-                  .first()
-                  .text()
-                  .trim() || 'Nigeria'
-
-              // Extract description snippet if available
-              const rawDesc =
-                card.find('.description, .summary, .excerpt, p').first().text().trim() || ''
-
-              const description = rawDesc
-                ? stripHtml(rawDesc)
-                : `${title} at ${company} in ${location}. Visit the listing for full details.`
-
-              // Extract deadline/date if shown
-              // NgCareers often shows "Deadline: March 30, 2025" on listing cards
-              const deadlineText =
-                card.find('.deadline, .closing-date, [class*="deadline"]').first().text().trim() ||
-                ''
-
-              // Try to parse the deadline as a date — fall back to now if parsing fails
-              let postedAt = new Date()
-              if (deadlineText) {
-                // Extract the date part from "Deadline: March 30, 2025"
-                const dateMatch = deadlineText.match(/(\w+ \d+,?\s*\d{4})/)
-                if (dateMatch) {
-                  const parsed = new Date(dateMatch[1])
-                  if (!isNaN(parsed.getTime())) {
-                    postedAt = parsed
-                  }
-                }
-              }
+              const description =
+                `${title} at ${company} in ${location}. ` +
+                (category ? `Category: ${category}. ` : '') +
+                'Visit the listing for full details.'
 
               allJobs.push({
                 title,
                 company,
                 location,
-                remote: location.toLowerCase().includes('remote'),
+                remote:
+                  location.toLowerCase().includes('remote') ||
+                  location.toLowerCase().includes('work from home'),
                 description,
                 applyUrl: jobUrl,
                 sourceUrl: jobUrl,
-                postedAt,
-                source: 'ngcareers',
+                postedAt: new Date(),
+                source: 'jobberman',
               })
             } catch {
-              // Skip malformed cards silently
+              // Skip malformed items silently
             }
-          })
+          }
 
-          console.log(`[NgCareers] Scraped ${allJobs.length} total jobs after page ${page}.`)
+          console.log(
+            `[NgCareers/Jobberman] Page ${page}: ${count} jobs. Total so far: ${allJobs.length}`
+          )
         } catch (pageError) {
           const message = pageError instanceof Error ? pageError.message : String(pageError)
-          console.warn(`[NgCareers] Failed to scrape page ${page}: ${message}`)
+          console.warn(`[NgCareers/Jobberman] Failed to scrape page ${page}: ${message}`)
         }
 
-        if (page < PAGES_TO_SCRAPE) {
+        if (page < END_PAGE) {
           await sleep(2000)
         }
       }
 
       if (allJobs.length === 0) {
         console.warn(
-          '[NgCareers] Zero jobs scraped. The site structure may have changed — check selectors.'
+          '[NgCareers/Jobberman] Zero jobs scraped. ' +
+            'Jobberman may have fewer than 4 pages of listings right now.'
         )
       }
 
       return allJobs
     } catch (fatalError) {
-      // RESILIENCE RULE 1: Never throw — return [] on fatal errors
       const message = fatalError instanceof Error ? fatalError.message : String(fatalError)
-      console.warn(`[NgCareers] Fatal error during scraping: ${message}`)
+      console.warn(`[NgCareers/Jobberman] Fatal error during scraping: ${message}`)
       return []
     }
   },

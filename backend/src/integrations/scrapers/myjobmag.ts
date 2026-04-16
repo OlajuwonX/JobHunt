@@ -1,25 +1,43 @@
 /**
  * MyJobMag Scraper (src/integrations/scrapers/myjobmag.ts)
  *
- * MyJobMag (myjobmag.com) is a multi-country African job board covering:
- *   - Nigeria (myjobmag.com)
- *   - Ghana
- *   - South Africa
- *   - Kenya
+ * MyJobMag (myjobmag.com) is a multi-country African job board covering Nigeria,
+ * Ghana, South Africa, and Kenya. Strong coverage across ALL industries.
  *
- * This gives us pan-African coverage beyond just Nigerian roles.
- * The site covers ALL industries: tech, banking, healthcare, NGOs, government, FMCG.
+ * ACTUAL HTML STRUCTURE (inspected April 2026):
+ * Jobs are in a <ul class="job-list"> and each job is a <li class="job-list-li">:
  *
- * RESILIENCE RULES (mandatory for all scrapers):
+ *   <li class="job-list-li">
+ *     <ul>
+ *       <li class="job-logo"> <a href="/jobs-at/company-slug"> ... </a> </li>
+ *       <li class="job-info">
+ *         <ul>
+ *           <li class="mag-b">
+ *             <h2><a href="/job/job-slug">Title at Company Name</a></h2>
+ *           </li>
+ *           <li class="job-desc">Description excerpt...</li>
+ *           <li class="job-item">
+ *             <ul>
+ *               <li id="job-date">16 April</li>
+ *             </ul>
+ *           </li>
+ *         </ul>
+ *       </li>
+ *     </ul>
+ *   </li>
+ *
+ * KEY NOTES:
+ * - Title and company are BOTH in the h2 link text as "Title at Company"
+ * - Split on " at " to separate them (last occurrence to handle titles with "at")
+ * - Location is NOT shown in the listing card — default to "Nigeria"
+ * - Pagination: /jobs for page 1, /jobs/page/2 for page 2
+ *
+ * RESILIENCE RULES:
  * 1. Wrap ENTIRE function in try/catch — return [] on any error
  * 2. Zero-result guard with warn log
  * 3. Skip malformed individual cards silently
  * 4. Never throw
  * 5. Sleep 2000ms between page requests
- *
- * NOTE: Selectors here are best-effort based on common patterns.
- * If this scraper returns 0 results, inspect the live site HTML and update selectors.
- * The zero-result guard will catch this safely — it won't crash the system.
  */
 
 import axios from 'axios'
@@ -33,102 +51,101 @@ const PAGES_TO_SCRAPE = 3
 
 const BROWSER_HEADERS = {
   'User-Agent':
-    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
   Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
   'Accept-Language': 'en-US,en;q=0.5',
   Connection: 'keep-alive',
+}
+
+/**
+ * Split "Job Title at Company Name" into title and company.
+ * Uses the LAST occurrence of " at " to handle titles like "Developer at Scale at Acme".
+ * Returns { title, company } — company defaults to "Nigerian Employer" if not found.
+ */
+function parseTitleCompany(text: string): { title: string; company: string } {
+  const lastAt = text.lastIndexOf(' at ')
+  if (lastAt === -1) {
+    return { title: text.trim(), company: 'Nigerian Employer' }
+  }
+  return {
+    title: text.slice(0, lastAt).trim(),
+    company: text.slice(lastAt + 4).trim(),
+  }
 }
 
 export const myjobmagAdapter: JobAdapter = {
   source: 'myjobmag',
 
   async fetch(): Promise<RawJob[]> {
-    // RESILIENCE RULE 1: Wrap entire function in try/catch
     try {
       const allJobs: RawJob[] = []
 
       for (let page = 1; page <= PAGES_TO_SCRAPE; page++) {
         try {
-          // MyJobMag pagination uses /jobs?page=n format
-          const url = page === 1 ? `${MYJOBMAG_BASE}/jobs` : `${MYJOBMAG_BASE}/jobs?page=${page}`
+          // MyJobMag pagination: /jobs for page 1, /jobs/page/2 for page 2+
+          const url = page === 1 ? `${MYJOBMAG_BASE}/jobs` : `${MYJOBMAG_BASE}/jobs/page/${page}`
 
           const response = await axios.get<string>(url, {
             headers: BROWSER_HEADERS,
-            timeout: 15000,
+            timeout: 20000,
           })
 
           const $ = cheerio.load(response.data)
 
-          // NOTE: Selectors here are best-effort based on common patterns.
-          // If this scraper returns 0 results, inspect the live site HTML and update selectors.
-          // The zero-result guard will catch this safely — it won't crash the system.
+          // Each job is a <li class="job-list-li"> inside <ul class="job-list">
+          const jobItems = $('li.job-list-li')
 
-          // MyJobMag typically renders jobs as list items with job-specific classes
-          const jobCards = $(
-            '.job-listing, .job-item, article.job, li.job, .vacancy-item, [data-job]'
-          )
-
-          // RESILIENCE RULE 2: Zero-result guard
-          if (jobCards.length === 0) {
+          if (jobItems.length === 0) {
             console.warn(
-              `[MyJobMag] No job cards found on page ${page}. HTML structure may have changed. ` +
-                'Inspect the live site and update selectors in scrapers/myjobmag.ts'
+              `[MyJobMag] No job items found on page ${page}. ` +
+                'Site structure may have changed — inspect li.job-list-li selector.'
             )
             continue
           }
 
-          jobCards.each((_index, element) => {
+          jobItems.each((_index, element) => {
             try {
-              const card = $(element)
-              // Try multiple selector patterns for title — sites change their CSS classes
-              const title =
-                card.find('h2, h3, .job-title, .title, a.job-link').first().text().trim() || ''
+              const item = $(element)
 
-              // Try multiple selector patterns for company name
-              const company =
-                card.find('.company, .employer, .company-name, .recruiter').first().text().trim() ||
-                ''
+              // Title and company are both in the h2 link text: "Title at Company"
+              const linkEl = item.find('li.mag-b h2 a')
+              const fullText = linkEl.text().trim()
+              if (!fullText || fullText.length < 3) return
 
-              // RESILIENCE RULE 3: Skip if essential fields are missing
+              const { title, company } = parseTitleCompany(fullText)
               if (!title || !company) return
 
-              // Extract the listing URL
-              const relativeUrl = card.find('a').first().attr('href') || ''
-              const jobUrl = relativeUrl.startsWith('http')
-                ? relativeUrl
-                : `${MYJOBMAG_BASE}${relativeUrl}`
+              // Job URL: href is relative like /job/slug
+              const relHref = linkEl.attr('href') || ''
+              if (!relHref) return
+              const jobUrl = relHref.startsWith('http') ? relHref : `${MYJOBMAG_BASE}${relHref}`
 
-              if (!jobUrl || jobUrl === MYJOBMAG_BASE) return
-
-              // Extract location information
-              const location =
-                card.find('.location, .job-location, .city').first().text().trim() || 'Nigeria'
-
-              // Extract any short description shown in the listing
-              const rawDesc =
-                card.find('.description, .summary, .excerpt').first().text().trim() || ''
-
+              // Description snippet
+              const rawDesc = item.find('li.job-desc').first().text().trim()
               const description = rawDesc
                 ? stripHtml(rawDesc)
-                : `${title} at ${company} in ${location}. Visit the listing for full details.`
+                : `${title} at ${company} in Nigeria. Visit the listing for full details.`
+
+              // Location not shown in listing cards — default to Nigeria
+              const location = 'Nigeria'
 
               allJobs.push({
                 title,
                 company,
                 location,
-                remote: location.toLowerCase().includes('remote'),
+                remote: false,
                 description,
                 applyUrl: jobUrl,
                 sourceUrl: jobUrl,
-                postedAt: new Date(), // MyJobMag dates are in relative format — use current date
+                postedAt: new Date(),
                 source: 'myjobmag',
               })
             } catch {
-              // Skip malformed cards silently
+              // Skip malformed items silently
             }
           })
 
-          console.log(`[MyJobMag] Scraped ${allJobs.length} total jobs after page ${page}.`)
+          console.log(`[MyJobMag] Page ${page}: ${jobItems.length} items. Total: ${allJobs.length}`)
         } catch (pageError) {
           const message = pageError instanceof Error ? pageError.message : String(pageError)
           console.warn(`[MyJobMag] Failed to scrape page ${page}: ${message}`)
@@ -140,14 +157,11 @@ export const myjobmagAdapter: JobAdapter = {
       }
 
       if (allJobs.length === 0) {
-        console.warn(
-          '[MyJobMag] Zero jobs scraped. The site structure may have changed — check selectors.'
-        )
+        console.warn('[MyJobMag] Zero jobs scraped. Check if site structure has changed.')
       }
 
       return allJobs
     } catch (fatalError) {
-      // RESILIENCE RULE 1: Return [] instead of throwing on fatal errors
       const message = fatalError instanceof Error ? fatalError.message : String(fatalError)
       console.warn(`[MyJobMag] Fatal error during scraping: ${message}`)
       return []

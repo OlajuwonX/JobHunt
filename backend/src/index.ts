@@ -38,7 +38,7 @@ import { createSocketServer } from './utils/socket'
 // exactly once at server startup — not on every request. Top-level imports
 // guarantee this.
 import { runIfEmpty } from './jobs/fetchApiJobs'
-import './jobs/fetchScraperJobs'
+import { runScraperIfNeeded } from './jobs/fetchScraperJobs'
 
 // ─── Port Configuration ────────────────────────────────────────────────────────
 // Use PORT from .env if set, otherwise default to 4000
@@ -54,9 +54,12 @@ const httpServer = app.listen(PORT, () => {
   console.log(`   Health:  http://localhost:${PORT}/health`)
   console.log(`   Env:     ${process.env.NODE_ENV || 'development'}\n`)
 
-  // Check if the jobs table is empty and trigger an initial fetch if needed.
-  // This makes the dev experience much better — no waiting until 02:00 AM for data.
-  runIfEmpty().catch(console.error)
+  // Trigger API fetch if table is empty, then trigger scraper fetch if no
+  // Nigerian jobs exist yet. Both run sequentially so scrapers don't start
+  // before API data has been written (avoids duplicate DB contention).
+  runIfEmpty()
+    .then(() => runScraperIfNeeded())
+    .catch(console.error)
 })
 
 // ─── Attach Socket.io ─────────────────────────────────────────────────────────

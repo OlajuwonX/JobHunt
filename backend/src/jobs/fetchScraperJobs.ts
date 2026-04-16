@@ -27,10 +27,14 @@
  */
 
 import cron from 'node-cron'
+import prisma from '../utils/prisma'
 import { sleep } from '../utils/sleep'
 import { normalize } from '../integrations/normalizer'
 import { batchUpsert } from '../services/jobs.service'
 import { RawJob } from '../integrations/types'
+
+// ngcareers.com now permanently redirects to jobberman.com — jobs appear as 'jobberman' source
+const SCRAPER_SOURCES = ['jobberman', 'myjobmag', 'hotnigerianjobs']
 
 // ─── Import Scraper Adapters ──────────────────────────────────────────────────
 import { jobbermanAdapter } from '../integrations/scrapers/jobberman'
@@ -111,6 +115,26 @@ export async function runScraperFetch(): Promise<void> {
     `[FetchScraperJobs] Complete. Processed: ${normalized.length}, DB operations: ${inserted}`
   )
   console.log('[FetchScraperJobs] Finished at', new Date().toISOString(), '\n')
+}
+
+/**
+ * Dev convenience: runs scrapers immediately on startup if no scraped jobs exist yet.
+ *
+ * Mirrors fetchApiJobs.runIfEmpty() but checks specifically for Nigerian scraper data.
+ * This handles the case where API jobs were fetched on a previous run (table is non-empty)
+ * but scrapers never ran — without this check, scrapers would only run at 06:00 AM.
+ */
+export async function runScraperIfNeeded(): Promise<void> {
+  const count = await prisma.job.count({
+    where: { source: { in: SCRAPER_SOURCES } },
+  })
+
+  if (count === 0) {
+    console.log('[FetchScraperJobs] No scraped jobs found — running initial scraper fetch now...')
+    await runScraperFetch()
+  } else {
+    console.log(`[FetchScraperJobs] ${count} scraped jobs already in DB — skipping initial fetch.`)
+  }
 }
 
 // ─── Schedule Cron ────────────────────────────────────────────────────────────

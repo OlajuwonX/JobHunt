@@ -8,7 +8,7 @@ export const metadata: Metadata = {
 export default function AuthLayout({ children }: { children: React.ReactNode }) {
   return (
     <main
-      className="relative flex min-h-screen items-center justify-center overflow-hidden bg-canvas px-4 py-12"
+      className="relative flex min-h-screen items-center justify-center overflow-hidden bg-background px-4 py-12"
       style={{
         backgroundImage: 'radial-gradient(circle, rgba(148,163,184,0.07) 1px, transparent 1px)',
         backgroundSize: '28px 28px',

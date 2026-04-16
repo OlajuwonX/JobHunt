@@ -48,7 +48,6 @@ const TECH_KEYWORDS: string[] = [
   'C#',
   'C++',
   'Scala',
-  'R',
   'MATLAB',
   // Frontend
   'Next.js',
@@ -64,8 +63,8 @@ const TECH_KEYWORDS: string[] = [
   'Flask',
   'FastAPI',
   'Laravel',
-  'Rails',
-  'Spring',
+  'Ruby on Rails',
+  'Spring Boot',
   'NestJS',
   'Gin',
   'Fiber',
@@ -92,7 +91,7 @@ const TECH_KEYWORDS: string[] = [
   'Jenkins',
   // APIs & protocols
   'GraphQL',
-  'REST',
+  'REST API',
   'gRPC',
   'WebSocket',
   // Design
@@ -102,7 +101,7 @@ const TECH_KEYWORDS: string[] = [
   'Illustrator',
   'Photoshop',
   // Data & analytics
-  'PowerBI',
+  'Power BI',
   'Tableau',
   'Excel',
   'SQL',
@@ -110,8 +109,8 @@ const TECH_KEYWORDS: string[] = [
   'NumPy',
   'TensorFlow',
   'PyTorch',
-  'Spark',
-  'Airflow',
+  'Apache Spark',
+  'Apache Airflow',
   'dbt',
   // Business & CRM
   'Salesforce',
@@ -132,6 +131,17 @@ const TECH_KEYWORDS: string[] = [
   'Marketo',
   'Klaviyo',
 ]
+
+// Short keywords that are also common English words — match only the exact capitalised
+// form as it appears in text (e.g. "Go" in a tech JD vs "go" in plain prose).
+const CASE_SENSITIVE_KEYWORDS = new Set([
+  'Go', 'Rust', 'Vue', 'Gin', 'Fiber', 'Scala', 'Swift', 'Kotlin', 'React', 'Angular', 'Svelte',
+])
+
+// Escape special regex characters so keyword strings can be used safely in RegExp.
+function escapeRegex(str: string): string {
+  return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+}
 
 // ─── Remote Detection Keywords ────────────────────────────────────────────────
 // Fallback when the source does not explicitly mark a job as remote.
@@ -389,11 +399,15 @@ function generateFuzzyHash(
 // ─────────────────────────────────────────────────────────────────────────────
 
 function extractTechStack(description: string): string[] {
-  const descLower = description.toLowerCase()
   const found = new Set<string>()
   for (const keyword of TECH_KEYWORDS) {
-    if (descLower.includes(keyword.toLowerCase())) {
-      found.add(keyword) // preserve original casing: "PostgreSQL" not "postgresql"
+    // Case-sensitive keywords (Go, Rust, Vue, etc.) must appear capitalized — prevents
+    // matching common English words like "go to", "trust", "revenue".
+    // All other keywords use case-insensitive word-boundary matching.
+    const flags = CASE_SENSITIVE_KEYWORDS.has(keyword) ? '' : 'i'
+    const pattern = new RegExp(`\\b${escapeRegex(keyword)}\\b`, flags)
+    if (pattern.test(description)) {
+      found.add(keyword)
     }
   }
   return Array.from(found)

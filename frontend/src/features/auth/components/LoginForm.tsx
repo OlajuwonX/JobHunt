@@ -40,7 +40,7 @@ export function LoginForm() {
           tabIndex={-1}
           autoComplete="off"
           aria-hidden="true"
-          className="absolute left-[-9999px] top-[-9999px] opacity-0"
+          className="absolute -left-2499.75 -top-2499.75 opacity-0"
           {...field('website' as never)}
         />
 

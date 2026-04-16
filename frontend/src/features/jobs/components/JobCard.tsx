@@ -1,6 +1,5 @@
 'use client'
 
-import Link from 'next/link'
 import { formatDistanceToNow } from 'date-fns'
 import { Bookmark, ExternalLink } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -11,11 +10,12 @@ import type { Job } from '@/types/jobs'
 
 interface JobCardProps {
   job: Job
+  onView: (job: Job) => void
   onApply: (job: Job) => void
   onSave: (job: Job) => void
 }
 
-export function JobCard({ job, onApply, onSave }: JobCardProps) {
+export function JobCard({ job, onView, onApply, onSave }: JobCardProps) {
   const postedAgo = formatDistanceToNow(new Date(job.postedAt), { addSuffix: true })
 
   return (
@@ -26,8 +26,9 @@ export function JobCard({ job, onApply, onSave }: JobCardProps) {
         'transition-shadow duration-200 hover:shadow-md hover:ring-foreground/20'
       )}
     >
-      <Link
-        href={`/dashboard/jobs/${job.id}`}
+      <button
+        type="button"
+        onClick={() => onView(job)}
         className="absolute inset-0 rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
         aria-label={`View ${job.title} at ${job.company}`}
       />

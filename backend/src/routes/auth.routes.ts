@@ -69,8 +69,9 @@ router.post('/register', authRateLimit, register)
 router.post('/login', authRateLimit, login)
 
 // POST /api/v1/auth/logout
-// requireAuth ensures only logged-in users can call this.
-router.post('/logout', requireAuth, logout)
+// No requireAuth — logout must work even when the access token has already expired.
+// Session revocation is done via the HttpOnly refresh_token cookie, not the Bearer token.
+router.post('/logout', logout)
 
 // POST /api/v1/auth/refresh
 // No requireAuth — the point is to renew an expired access token.

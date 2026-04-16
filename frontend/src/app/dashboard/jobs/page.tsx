@@ -10,6 +10,7 @@ import { JobCard } from '@/features/jobs/components/JobCard'
 import { JobGridSkeleton } from '@/features/jobs/components/JobCardSkeleton'
 import { Pagination } from '@/features/jobs/components/Pagination'
 import { ApplyDialog } from '@/features/jobs/components/ApplyDialog'
+import { JobDetailModal } from '@/features/jobs/components/JobDetailModal'
 import { useJobs } from '@/features/jobs/hooks/useJobs'
 import { getJobs } from '@/services/jobs.service'
 import type { Job, JobFilters } from '@/types/jobs'
@@ -54,8 +55,11 @@ function JobsContent() {
   const queryClient = useQueryClient()
 
   const filters = parseFilters(searchParams)
+
+  const [selectedJobId, setSelectedJobId] = useState<string | null>(null)
+  const [modalOpen, setModalOpen] = useState(false)
   const [applyJob, setApplyJob] = useState<Job | null>(null)
-  const [dialogOpen, setDialogOpen] = useState(false)
+  const [applyDialogOpen, setApplyDialogOpen] = useState(false)
 
   const { data, isLoading, isFetching } = useJobs(filters)
 
@@ -67,7 +71,6 @@ function JobsContent() {
       } else {
         current.set(key, value)
       }
-      // Reset to page 1 on any filter change (except page itself)
       if (key !== 'page') current.delete('page')
       router.replace(`/dashboard/jobs?${current.toString()}`)
     },
@@ -94,20 +97,25 @@ function JobsContent() {
     [queryClient, filters]
   )
 
+  const handleView = useCallback((job: Job) => {
+    setSelectedJobId(job.id)
+    setModalOpen(true)
+  }, [])
+
   const handleApply = useCallback((job: Job) => {
     window.open(job.applyUrl, '_blank', 'noopener,noreferrer')
     setApplyJob(job)
-    setDialogOpen(true)
+    setApplyDialogOpen(true)
   }, [])
 
   const handleSave = useCallback((job: Job) => {
     setApplyJob(job)
-    setDialogOpen(true)
+    setApplyDialogOpen(true)
   }, [])
 
-  const handleDialogClose = useCallback(() => {
-    setDialogOpen(false)
-    setApplyJob(null)
+  // Called from the detail modal's Apply button
+  const handleModalApply = useCallback(() => {
+    setApplyDialogOpen(true)
   }, [])
 
   const totalJobs = data?.pagination.total ?? 0
@@ -150,7 +158,13 @@ function JobsContent() {
               className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3"
             >
               {jobs.map((job) => (
-                <JobCard key={job.id} job={job} onApply={handleApply} onSave={handleSave} />
+                <JobCard
+                  key={job.id}
+                  job={job}
+                  onView={handleView}
+                  onApply={handleApply}
+                  onSave={handleSave}
+                />
               ))}
             </motion.div>
           </AnimatePresence>
@@ -165,13 +179,27 @@ function JobsContent() {
         )}
       </div>
 
-      <ApplyDialog job={applyJob} open={dialogOpen} onClose={handleDialogClose} />
+      <JobDetailModal
+        jobId={selectedJobId}
+        open={modalOpen}
+        onClose={() => setModalOpen(false)}
+        onApply={handleModalApply}
+        onSave={() => setApplyDialogOpen(true)}
+      />
+
+      <ApplyDialog
+        job={applyJob}
+        open={applyDialogOpen}
+        onClose={() => {
+          setApplyDialogOpen(false)
+          setApplyJob(null)
+        }}
+      />
     </div>
   )
 }
 
 // useSearchParams() must be inside a Suspense boundary in the App Router.
-// JobsContent holds all the filter+fetch logic; JobsPage wraps it.
 export default function JobsPage() {
   return (
     <Suspense fallback={<JobGridSkeleton />}>

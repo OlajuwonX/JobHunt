@@ -26,17 +26,17 @@ Authorization: Bearer <accessToken>
 
 **Query parameters:**
 
-| Parameter  | Type    | Default | Constraints                   | Description                              |
-| ---------- | ------- | ------- | ----------------------------- | ---------------------------------------- |
-| `page`     | integer | `1`     | min: 1                        | Page number                              |
-| `limit`    | integer | `20`    | min: 1, max: 50               | Results per page                         |
-| `source`   | string  | —       | See valid values              | Filter by source platform                |
-| `remote`   | boolean | —       | `true` or `false`             | Filter by remote status                  |
-| `q`        | string  | —       | max 100 chars                 | Search on title and company name         |
+| Parameter  | Type    | Default | Constraints                    | Description                              |
+| ---------- | ------- | ------- | ------------------------------ | ---------------------------------------- |
+| `page`     | integer | `1`     | min: 1                         | Page number                              |
+| `limit`    | integer | `20`    | min: 1, max: 50                | Results per page                         |
+| `source`   | string  | —       | See valid values               | Filter by source platform                |
+| `remote`   | boolean | —       | `true` or `false`              | Filter by remote status                  |
+| `q`        | string  | —       | max 100 chars                  | Search on title and company name         |
 | `category` | string  | —       | max 50 chars, see valid values | Filter by job role category              |
-| `country`  | string  | —       | `nigeria` or `global`         | Filter by job market                     |
-| `since`    | date    | —       | ISO 8601                      | Only jobs posted on or after this date   |
-| `minScore` | integer | —       | 0–100                         | Only jobs with match score at this value |
+| `country`  | string  | —       | `nigeria` or `global`          | Filter by job market                     |
+| `since`    | date    | —       | ISO 8601                       | Only jobs posted on or after this date   |
+| `minScore` | integer | —       | 0–100                          | Only jobs with match score at this value |
 
 **Valid `source` values:**
 `greenhouse`, `lever`, `remotive`, `arbeitnow`, `jobicy`, `themuse`, `weworkremotely`, `jobberman`, `myjobmag`, `hotnigerianjobs`, `ngcareers`
@@ -89,14 +89,14 @@ Authorization: Bearer <accessToken>
 
 **Field notes:**
 
-| Field         | Description                                                                                          |
-| ------------- | ---------------------------------------------------------------------------------------------------- |
-| `matchScore`  | Only present if user has roles or skills set. Range 0–100. Scoring: role(30) + skills(40) + remote(15) + country(10) + recency(5). |
+| Field         | Description                                                                                                                                                                   |
+| ------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `matchScore`  | Only present if user has roles or skills set. Range 0–100. Scoring: role(30) + skills(40) + remote(15) + country(10) + recency(5).                                            |
 | `category`    | Detected from title+description during ingestion. One of: `tech`, `finance`, `sales`, `marketing`, `healthcare`, `design`, `operations`, `hr`, `legal`, `education`, `other`. |
-| `country`     | `nigeria` for Nigerian-market jobs (detected from source name or location); `global` for all others. Lowercase always. |
-| `salaryRange` | `null` if source did not include salary information.                                                 |
-| `sourceUrl`   | Original listing page URL. May equal `applyUrl` or differ.                                           |
-| `description` | Plain text, max 12,000 characters. May contain `\n` line breaks.                                    |
+| `country`     | `nigeria` for Nigerian-market jobs (detected from source name or location); `global` for all others. Lowercase always.                                                        |
+| `salaryRange` | `null` if source did not include salary information.                                                                                                                          |
+| `sourceUrl`   | Original listing page URL. May equal `applyUrl` or differ.                                                                                                                    |
+| `description` | Plain text, max 12,000 characters. May contain `\n` line breaks.                                                                                                              |
 
 **Errors:**
 

@@ -252,26 +252,26 @@ export async function batchUpsert(
  */
 const ROLE_SYNONYMS: Record<string, string[]> = {
   // ── Tech roles ────────────────────────────────────────────────────────────
-  frontend:   ['frontend', 'front-end', 'react', 'vue', 'angular', 'ui engineer', 'ui developer'],
-  backend:    ['backend', 'back-end', 'api engineer', 'server', 'node developer'],
-  fullstack:  ['fullstack', 'full-stack', 'full stack'],
-  mobile:     ['mobile', 'android', 'ios', 'flutter', 'react native'],
-  software:   ['software', 'engineer', 'developer', 'programmer'],
-  devops:     ['devops', 'cloud engineer', 'infrastructure', 'sre', 'platform engineer'],
-  data:       ['data scientist', 'data analyst', 'ml engineer', 'ai engineer', 'analytics'],
+  frontend: ['frontend', 'front-end', 'react', 'vue', 'angular', 'ui engineer', 'ui developer'],
+  backend: ['backend', 'back-end', 'api engineer', 'server', 'node developer'],
+  fullstack: ['fullstack', 'full-stack', 'full stack'],
+  mobile: ['mobile', 'android', 'ios', 'flutter', 'react native'],
+  software: ['software', 'engineer', 'developer', 'programmer'],
+  devops: ['devops', 'cloud engineer', 'infrastructure', 'sre', 'platform engineer'],
+  data: ['data scientist', 'data analyst', 'ml engineer', 'ai engineer', 'analytics'],
   // ── Finance roles ─────────────────────────────────────────────────────────
-  finance:    ['finance', 'financial analyst', 'investment', 'treasury'],
+  finance: ['finance', 'financial analyst', 'investment', 'treasury'],
   accounting: ['accountant', 'accounting', 'audit', 'bookkeeper', 'tax'],
-  banking:    ['banking', 'bank', 'credit analyst', 'loan officer', 'mortgage'],
-  insurance:  ['insurance', 'underwriter', 'actuary', 'claims'],
+  banking: ['banking', 'bank', 'credit analyst', 'loan officer', 'mortgage'],
+  insurance: ['insurance', 'underwriter', 'actuary', 'claims'],
   // ── Business roles ────────────────────────────────────────────────────────
-  sales:      ['sales', 'business development', 'account executive', 'account manager'],
-  marketing:  ['marketing', 'growth', 'brand manager', 'seo', 'content'],
-  hr:         ['human resources', 'recruitment', 'talent acquisition', 'hr manager'],
+  sales: ['sales', 'business development', 'account executive', 'account manager'],
+  marketing: ['marketing', 'growth', 'brand manager', 'seo', 'content'],
+  hr: ['human resources', 'recruitment', 'talent acquisition', 'hr manager'],
   operations: ['operations', 'ops', 'logistics', 'supply chain', 'procurement'],
   // ── Other professional roles ──────────────────────────────────────────────
   healthcare: ['nurse', 'doctor', 'pharmacist', 'clinical', 'medical officer'],
-  legal:      ['lawyer', 'attorney', 'legal counsel', 'compliance officer'],
+  legal: ['lawyer', 'attorney', 'legal counsel', 'compliance officer'],
 }
 
 /**
@@ -372,7 +372,7 @@ export function scoreJob(
   } else if (remotePref === 'onsite' && !job.remote) {
     score += 15 // User wants in-office, job is in-office — perfect match
   } else if (remotePref === 'any') {
-    score += 7  // Flexible user — small boost regardless of job's remote status
+    score += 7 // Flexible user — small boost regardless of job's remote status
   }
   // remotePref === 'remote' but job is not remote → 0 pts (mismatch)
 

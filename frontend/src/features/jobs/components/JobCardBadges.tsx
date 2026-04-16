@@ -12,7 +12,12 @@ interface SourceBadgeProps {
 export function SourceBadge({ source }: SourceBadgeProps) {
   const colorClass = SOURCE_COLORS[source] ?? 'bg-muted text-muted-foreground'
   return (
-    <span className={cn('inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium', colorClass)}>
+    <span
+      className={cn(
+        'inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium',
+        colorClass
+      )}
+    >
       {SOURCE_LABELS[source] ?? source}
     </span>
   )

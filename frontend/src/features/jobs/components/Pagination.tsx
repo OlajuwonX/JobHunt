@@ -41,10 +41,7 @@ export function Pagination({ pagination, onPageChange, onPrefetch }: PaginationP
   const pages = buildPageRange(page, totalPages)
 
   return (
-    <nav
-      className="flex items-center justify-center gap-1 py-6"
-      aria-label="Pagination"
-    >
+    <nav className="flex items-center justify-center gap-1 py-6" aria-label="Pagination">
       <Button
         variant="outline"
         size="icon-sm"
@@ -57,10 +54,7 @@ export function Pagination({ pagination, onPageChange, onPrefetch }: PaginationP
 
       {pages.map((p, idx) =>
         p === '...' ? (
-          <span
-            key={`ellipsis-${idx}`}
-            className="px-2 text-sm text-muted-foreground select-none"
-          >
+          <span key={`ellipsis-${idx}`} className="px-2 text-sm text-muted-foreground select-none">
             ...
           </span>
         ) : (

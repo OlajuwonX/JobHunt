@@ -125,9 +125,7 @@ function JobsContent() {
               <span className="animate-pulse">Loading jobs...</span>
             ) : (
               <>
-                <span className="font-semibold text-foreground">
-                  {totalJobs.toLocaleString()}
-                </span>{' '}
+                <span className="font-semibold text-foreground">{totalJobs.toLocaleString()}</span>{' '}
                 {totalJobs === 1 ? 'job' : 'jobs'} found
               </>
             )}
@@ -152,12 +150,7 @@ function JobsContent() {
               className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3"
             >
               {jobs.map((job) => (
-                <JobCard
-                  key={job.id}
-                  job={job}
-                  onApply={handleApply}
-                  onSave={handleSave}
-                />
+                <JobCard key={job.id} job={job} onApply={handleApply} onSave={handleSave} />
               ))}
             </motion.div>
           </AnimatePresence>
@@ -172,11 +165,7 @@ function JobsContent() {
         )}
       </div>
 
-      <ApplyDialog
-        job={applyJob}
-        open={dialogOpen}
-        onClose={handleDialogClose}
-      />
+      <ApplyDialog job={applyJob} open={dialogOpen} onClose={handleDialogClose} />
     </div>
   )
 }

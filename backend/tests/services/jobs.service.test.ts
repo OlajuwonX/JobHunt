@@ -69,8 +69,8 @@ const makeNormalizedJob = (overrides: Partial<NormalizedJob> = {}): NormalizedJo
   sourceUrl: 'https://greenhouse.io/stripe/jobs/123',
   postedAt: new Date('2024-01-15'),
   salaryRange: '$180k - $250k',
-  category: 'tech',   // required by updated NormalizedJob type
-  country: 'global',  // required by updated NormalizedJob type
+  category: 'tech', // required by updated NormalizedJob type
+  country: 'global', // required by updated NormalizedJob type
   ...overrides,
 })
 
@@ -90,8 +90,8 @@ const makeJobDbRow = (overrides = {}) => ({
   postedAt: new Date('2024-01-15'),
   createdAt: new Date('2024-01-15'),
   atsScores: [],
-  category: 'tech',   // intelligence layer field
-  country: 'global',  // intelligence layer field
+  category: 'tech', // intelligence layer field
+  country: 'global', // intelligence layer field
   ...overrides,
 })
 
@@ -114,17 +114,17 @@ describe('scoreJob()', () => {
     //   country:  10 pts (Nigerian user + Nigerian job)
     //   recency:   5 pts (posted within last 3 days)
     const job = {
-      title: 'React Engineer',           // 'react' is in frontend synonyms → role match
+      title: 'React Engineer', // 'react' is in frontend synonyms → role match
       techStack: ['React', 'TypeScript', 'Node.js', 'PostgreSQL', 'AWS'],
       remote: true,
-      postedAt: new Date(),              // today → recency bonus triggers
+      postedAt: new Date(), // today → recency bonus triggers
       country: 'nigeria' as string,
     }
     const profile = {
-      roles: ['frontend developer'],     // expands to include 'react' → matches title
+      roles: ['frontend developer'], // expands to include 'react' → matches title
       skills: ['React', 'TypeScript', 'Node.js', 'PostgreSQL', 'AWS'],
       remotePref: 'remote',
-      location: 'Lagos, Nigeria',        // Nigerian city → isUserNigerian = true
+      location: 'Lagos, Nigeria', // Nigerian city → isUserNigerian = true
     }
 
     const score = scoreJob(job, profile)
@@ -144,7 +144,7 @@ describe('scoreJob()', () => {
       roles: ['Backend Engineer'],
       skills: ['Python', 'PostgreSQL'],
       remotePref: 'remote', // wants remote but job is not → mismatch = 0
-      location: 'Lagos, Nigeria',       // Nigerian user + global job → no country bonus
+      location: 'Lagos, Nigeria', // Nigerian user + global job → no country bonus
     }
 
     const score = scoreJob(job, profile)
@@ -156,16 +156,16 @@ describe('scoreJob()', () => {
     // New formula: skills earn 8 pts each (not a ratio).
     // 1 skill match = 8 pts (not proportional to total skills).
     const job = {
-      title: 'Backend Developer',   // 'developer' is in 'software' synonyms → role match (30)
+      title: 'Backend Developer', // 'developer' is in 'software' synonyms → role match (30)
       techStack: ['Python', 'Docker'],
       remote: false,
       postedAt: new Date('2022-01-01'), // old — no recency
       country: undefined as string | undefined,
     }
     const profile = {
-      roles: ['Backend Engineer'],  // 'backend' synonym group contains 'back-end', 'api engineer', etc.
+      roles: ['Backend Engineer'], // 'backend' synonym group contains 'back-end', 'api engineer', etc.
       skills: ['Python', 'PostgreSQL'], // Python matches, PostgreSQL does not
-      remotePref: 'any',           // flexible → 7 pts
+      remotePref: 'any', // flexible → 7 pts
       location: null,
     }
 
@@ -221,15 +221,15 @@ describe('scoreJob()', () => {
   it('should use ROLE_SYNONYMS to match "frontend developer" against "React Engineer"', () => {
     // This is the key improvement in B16 — synonym expansion catches role variants
     const job = {
-      title: 'React Engineer',   // does NOT contain 'frontend developer' literally
+      title: 'React Engineer', // does NOT contain 'frontend developer' literally
       techStack: [],
       remote: false,
       postedAt: new Date('2022-01-01'),
     }
     const profile = {
-      roles: ['frontend developer'],  // 'frontend' → expands to include 'react'
+      roles: ['frontend developer'], // 'frontend' → expands to include 'react'
       skills: [],
-      remotePref: 'onsite',          // matches → 15 pts
+      remotePref: 'onsite', // matches → 15 pts
       location: null,
     }
 
@@ -251,8 +251,8 @@ describe('scoreJob()', () => {
     const profile = {
       roles: [],
       skills: [],
-      remotePref: 'onsite',          // 15 pts (onsite match)
-      location: 'Lagos, Nigeria',    // Nigerian city → isUserNigerian = true
+      remotePref: 'onsite', // 15 pts (onsite match)
+      location: 'Lagos, Nigeria', // Nigerian city → isUserNigerian = true
     }
 
     const score = scoreJob(job, profile)
@@ -271,7 +271,7 @@ describe('scoreJob()', () => {
     const profile = {
       roles: [],
       skills: [],
-      remotePref: 'onsite',          // 15 pts
+      remotePref: 'onsite', // 15 pts
       location: 'San Francisco, US', // not a Nigerian city → isUserNigerian = false
     }
 
@@ -309,7 +309,7 @@ describe('scoreJob()', () => {
       postedAt: new Date('2022-01-01'),
     }
     const profile = {
-      roles: ['backend engineer'],   // lowercase — should still match UPPERCASE title
+      roles: ['backend engineer'], // lowercase — should still match UPPERCASE title
       skills: [],
       remotePref: 'onsite',
       location: null,
@@ -475,9 +475,7 @@ describe('batchUpsert()', () => {
   it('should gracefully handle createMany failure without throwing', async () => {
     const jobs = [makeNormalizedJob({ jobHash: 'hash1', fuzzyHash: 'fuzzy1' })]
 
-    ;(mockPrisma.job.findMany as jest.Mock)
-      .mockResolvedValueOnce([])
-      .mockResolvedValueOnce([])
+    ;(mockPrisma.job.findMany as jest.Mock).mockResolvedValueOnce([]).mockResolvedValueOnce([])
     ;(mockPrisma.job.createMany as jest.Mock).mockRejectedValue(new Error('DB connection lost'))
 
     // Should not throw — batchUpsert catches createMany errors and continues

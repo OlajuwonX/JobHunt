@@ -35,32 +35,102 @@ import { NormalizedJob } from '../types'
 // Broad on purpose — covers engineering, design, finance, marketing, and ops.
 const TECH_KEYWORDS: string[] = [
   // Languages
-  'TypeScript', 'JavaScript', 'Python', 'Java', 'Kotlin', 'Swift',
-  'Go', 'Rust', 'PHP', 'Ruby', 'C#', 'C++', 'Scala', 'R', 'MATLAB',
+  'TypeScript',
+  'JavaScript',
+  'Python',
+  'Java',
+  'Kotlin',
+  'Swift',
+  'Go',
+  'Rust',
+  'PHP',
+  'Ruby',
+  'C#',
+  'C++',
+  'Scala',
+  'R',
+  'MATLAB',
   // Frontend
-  'Next.js', 'React', 'Vue', 'Angular', 'Svelte', 'Nuxt',
+  'Next.js',
+  'React',
+  'Vue',
+  'Angular',
+  'Svelte',
+  'Nuxt',
   // Backend
-  'Node.js', 'Express', 'Django', 'Flask', 'FastAPI', 'Laravel',
-  'Rails', 'Spring', 'NestJS', 'Gin', 'Fiber',
+  'Node.js',
+  'Express',
+  'Django',
+  'Flask',
+  'FastAPI',
+  'Laravel',
+  'Rails',
+  'Spring',
+  'NestJS',
+  'Gin',
+  'Fiber',
   // Databases
-  'PostgreSQL', 'MySQL', 'MongoDB', 'Redis', 'Elasticsearch',
-  'SQLite', 'DynamoDB', 'Cassandra', 'Supabase',
+  'PostgreSQL',
+  'MySQL',
+  'MongoDB',
+  'Redis',
+  'Elasticsearch',
+  'SQLite',
+  'DynamoDB',
+  'Cassandra',
+  'Supabase',
   // Cloud & DevOps
-  'Kubernetes', 'Docker', 'AWS', 'GCP', 'Azure', 'Terraform',
-  'Linux', 'CI/CD', 'GitHub Actions', 'Jenkins',
+  'Kubernetes',
+  'Docker',
+  'AWS',
+  'GCP',
+  'Azure',
+  'Terraform',
+  'Linux',
+  'CI/CD',
+  'GitHub Actions',
+  'Jenkins',
   // APIs & protocols
-  'GraphQL', 'REST', 'gRPC', 'WebSocket',
+  'GraphQL',
+  'REST',
+  'gRPC',
+  'WebSocket',
   // Design
-  'Figma', 'Sketch', 'Adobe XD', 'Illustrator', 'Photoshop',
+  'Figma',
+  'Sketch',
+  'Adobe XD',
+  'Illustrator',
+  'Photoshop',
   // Data & analytics
-  'PowerBI', 'Tableau', 'Excel', 'SQL', 'Pandas', 'NumPy',
-  'TensorFlow', 'PyTorch', 'Spark', 'Airflow', 'dbt',
+  'PowerBI',
+  'Tableau',
+  'Excel',
+  'SQL',
+  'Pandas',
+  'NumPy',
+  'TensorFlow',
+  'PyTorch',
+  'Spark',
+  'Airflow',
+  'dbt',
   // Business & CRM
-  'Salesforce', 'HubSpot', 'SAP', 'QuickBooks', 'Xero',
-  'Jira', 'Confluence', 'Asana', 'Notion',
+  'Salesforce',
+  'HubSpot',
+  'SAP',
+  'QuickBooks',
+  'Xero',
+  'Jira',
+  'Confluence',
+  'Asana',
+  'Notion',
   // Marketing
-  'SEO', 'Google Analytics', 'Facebook Ads', 'Google Ads',
-  'Mailchimp', 'Marketo', 'Klaviyo',
+  'SEO',
+  'Google Analytics',
+  'Facebook Ads',
+  'Google Ads',
+  'Mailchimp',
+  'Marketo',
+  'Klaviyo',
 ]
 
 // ─── Remote Detection Keywords ────────────────────────────────────────────────
@@ -86,13 +156,13 @@ const REQUIREMENT_LINE_REGEX = /^[\s]*(•|-|\*|►|\d+\.)\s+/
  *   Jobberman uses "Jr", MyJobMag uses "Jnr", HotNigerianJobs uses "Junior"
  */
 const SENIORITY_ABBR: Record<string, string> = {
-  'jr': 'junior',
+  jr: 'junior',
   'jr.': 'junior',
-  'jnr': 'junior',
+  jnr: 'junior',
   'jnr.': 'junior',
-  'sr': 'senior',
+  sr: 'senior',
   'sr.': 'senior',
-  'snr': 'senior',
+  snr: 'senior',
   'snr.': 'senior',
   'mid-level': 'mid',
   'entry-level': 'junior',
@@ -150,9 +220,9 @@ const TITLE_NOISE_PATTERNS: RegExp[] = [
   /\(new\)/gi,
   /[-\u2013\u2014]\s*(remote|hybrid|lagos|abuja|nigeria|port harcourt|ibadan)/gi,
   /,?\s*(nigeria|lagos|abuja|remote)$/gi,
-  /\s+i{1,3}$/gi,   // Roman numerals at end: I, II, III
-  /\s+[12]$/gi,     // Trailing version numbers: "Role 1"
-  /\(.*?\)/g,       // Any remaining parenthetical content
+  /\s+i{1,3}$/gi, // Roman numerals at end: I, II, III
+  /\s+[12]$/gi, // Trailing version numbers: "Role 1"
+  /\(.*?\)/g, // Any remaining parenthetical content
 ]
 
 /**
@@ -349,7 +419,10 @@ function detectRemote(title: string, location: string | null): boolean {
 }
 
 function cleanDescription(description: string): string {
-  return description.replace(/\s{3,}/g, '\n\n').trim().slice(0, 12_000)
+  return description
+    .replace(/\s{3,}/g, '\n\n')
+    .trim()
+    .slice(0, 12_000)
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -375,21 +448,40 @@ function cleanDescription(description: string): string {
  */
 const CATEGORY_KEYWORDS: Record<string, string[]> = {
   tech: [
-    'engineer', 'developer', 'software', 'frontend', 'backend', 'devops',
-    'data scientist', 'machine learning', 'cloud', 'mobile', 'fullstack', 'it ',
+    'engineer',
+    'developer',
+    'software',
+    'frontend',
+    'backend',
+    'devops',
+    'data scientist',
+    'machine learning',
+    'cloud',
+    'mobile',
+    'fullstack',
+    'it ',
   ],
   finance: [
-    'finance', 'financial', 'bank', 'accountant', 'accounting', 'audit',
-    'treasury', 'investment', 'insurance', 'actuary', 'tax',
+    'finance',
+    'financial',
+    'bank',
+    'accountant',
+    'accounting',
+    'audit',
+    'treasury',
+    'investment',
+    'insurance',
+    'actuary',
+    'tax',
   ],
-  sales:      ['sales', 'business development', 'account executive', 'growth', 'revenue'],
-  marketing:  ['marketing', 'seo', 'social media', 'brand', 'content', 'digital marketing'],
+  sales: ['sales', 'business development', 'account executive', 'growth', 'revenue'],
+  marketing: ['marketing', 'seo', 'social media', 'brand', 'content', 'digital marketing'],
   healthcare: ['nurse', 'doctor', 'clinical', 'hospital', 'pharmacist', 'medical'],
-  design:     ['designer', 'design', 'ux', 'ui ', 'creative', 'figma', 'product design'],
+  design: ['designer', 'design', 'ux', 'ui ', 'creative', 'figma', 'product design'],
   operations: ['operations', 'ops', 'logistics', 'supply chain', 'procurement', 'admin'],
-  hr:         ['human resources', 'hr ', 'recruitment', 'talent acquisition'],
-  legal:      ['legal', 'lawyer', 'attorney', 'counsel', 'compliance'],
-  education:  ['teacher', 'tutor', 'education', 'instructor', 'trainer'],
+  hr: ['human resources', 'hr ', 'recruitment', 'talent acquisition'],
+  legal: ['legal', 'lawyer', 'attorney', 'counsel', 'compliance'],
+  education: ['teacher', 'tutor', 'education', 'instructor', 'trainer'],
 }
 
 /**

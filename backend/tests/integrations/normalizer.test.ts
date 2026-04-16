@@ -246,85 +246,107 @@ Requirements:
 
   describe('category detection', () => {
     it('should detect "tech" from job title containing "engineer"', () => {
-      const result = normalize(makeRawJob({ title: 'Senior Software Engineer', description: 'Build APIs' }))
+      const result = normalize(
+        makeRawJob({ title: 'Senior Software Engineer', description: 'Build APIs' })
+      )
       expect(result.category).toBe('tech')
     })
 
     it('should detect "tech" from job title containing "developer"', () => {
-      const result = normalize(makeRawJob({ title: 'Frontend Developer', description: 'Build UIs' }))
+      const result = normalize(
+        makeRawJob({ title: 'Frontend Developer', description: 'Build UIs' })
+      )
       expect(result.category).toBe('tech')
     })
 
     it('should detect "finance" from job title containing "accountant"', () => {
-      const result = normalize(makeRawJob({
-        title: 'Senior Accountant',
-        description: 'Manage accounts payable and receivable',
-      }))
+      const result = normalize(
+        makeRawJob({
+          title: 'Senior Accountant',
+          description: 'Manage accounts payable and receivable',
+        })
+      )
       expect(result.category).toBe('finance')
     })
 
     it('should detect "finance" from title containing "financial"', () => {
-      const result = normalize(makeRawJob({
-        title: 'Financial Analyst',
-        description: 'Analyze investment portfolios',
-      }))
+      const result = normalize(
+        makeRawJob({
+          title: 'Financial Analyst',
+          description: 'Analyze investment portfolios',
+        })
+      )
       expect(result.category).toBe('finance')
     })
 
     it('should detect "sales" from job title containing "sales"', () => {
-      const result = normalize(makeRawJob({
-        title: 'Sales Representative',
-        description: 'Drive revenue growth for the company',
-      }))
+      const result = normalize(
+        makeRawJob({
+          title: 'Sales Representative',
+          description: 'Drive revenue growth for the company',
+        })
+      )
       expect(result.category).toBe('sales')
     })
 
     it('should detect "marketing" from job title containing "marketing"', () => {
-      const result = normalize(makeRawJob({
-        title: 'Digital Marketing Manager',
-        description: 'Run campaigns on social media',
-      }))
+      const result = normalize(
+        makeRawJob({
+          title: 'Digital Marketing Manager',
+          description: 'Run campaigns on social media',
+        })
+      )
       expect(result.category).toBe('marketing')
     })
 
     it('should detect "healthcare" from job title containing "nurse"', () => {
-      const result = normalize(makeRawJob({
-        title: 'Registered Nurse',
-        description: 'Provide clinical care to patients in a hospital setting',
-      }))
+      const result = normalize(
+        makeRawJob({
+          title: 'Registered Nurse',
+          description: 'Provide clinical care to patients in a hospital setting',
+        })
+      )
       expect(result.category).toBe('healthcare')
     })
 
     it('should detect "hr" from job title containing "recruitment"', () => {
-      const result = normalize(makeRawJob({
-        title: 'Recruitment Specialist',
-        description: 'Talent acquisition and HR management',
-      }))
+      const result = normalize(
+        makeRawJob({
+          title: 'Recruitment Specialist',
+          description: 'Talent acquisition and HR management',
+        })
+      )
       expect(result.category).toBe('hr')
     })
 
     it('should detect "legal" from job title containing "lawyer"', () => {
-      const result = normalize(makeRawJob({
-        title: 'Corporate Lawyer',
-        description: 'Handle compliance and legal counsel for the firm',
-      }))
+      const result = normalize(
+        makeRawJob({
+          title: 'Corporate Lawyer',
+          description: 'Handle compliance and legal counsel for the firm',
+        })
+      )
       expect(result.category).toBe('legal')
     })
 
     it('should fall back to "other" when no keywords match', () => {
-      const result = normalize(makeRawJob({
-        title: 'Program Coordinator',
-        description: 'Coordinate programs and events for the organization',
-      }))
+      const result = normalize(
+        makeRawJob({
+          title: 'Program Coordinator',
+          description: 'Coordinate programs and events for the organization',
+        })
+      )
       expect(result.category).toBe('other')
     })
 
     it('should detect category from description even when title is ambiguous', () => {
       // "Manager" alone is ambiguous, but description makes it clear it is finance
-      const result = normalize(makeRawJob({
-        title: 'Manager',
-        description: 'Oversee accounting, audit, and tax compliance operations',
-      }))
+      const result = normalize(
+        makeRawJob({
+          title: 'Manager',
+          description: 'Oversee accounting, audit, and tax compliance operations',
+        })
+      )
       expect(result.category).toBe('finance')
     })
   })
@@ -363,7 +385,9 @@ Requirements:
     })
 
     it('should return "nigeria" when location contains "Port Harcourt"', () => {
-      const result = normalize(makeRawJob({ source: 'greenhouse', location: 'Port Harcourt, Nigeria' }))
+      const result = normalize(
+        makeRawJob({ source: 'greenhouse', location: 'Port Harcourt, Nigeria' })
+      )
       expect(result.country).toBe('nigeria')
     })
 

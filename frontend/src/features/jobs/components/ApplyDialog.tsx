@@ -68,11 +68,7 @@ export function ApplyDialog({ job, open, onClose }: ApplyDialogProps) {
         <p className="text-sm text-foreground">Did you complete the application?</p>
 
         <DialogFooter className="border-0 bg-transparent px-0 pb-0 sm:flex-col gap-2">
-          <Button
-            className="w-full gap-2"
-            onClick={handleApplied}
-            disabled={isPending}
-          >
+          <Button className="w-full gap-2" onClick={handleApplied} disabled={isPending}>
             <CheckCircle className="size-4" />
             {isPending ? 'Saving...' : 'Mark as Applied'}
           </Button>
@@ -85,12 +81,7 @@ export function ApplyDialog({ job, open, onClose }: ApplyDialogProps) {
             <Bookmark className="size-4" />
             {isPending ? 'Saving...' : 'Save for later'}
           </Button>
-          <Button
-            variant="ghost"
-            className="w-full"
-            onClick={onClose}
-            disabled={isPending}
-          >
+          <Button variant="ghost" className="w-full" onClick={onClose} disabled={isPending}>
             Cancel
           </Button>
         </DialogFooter>

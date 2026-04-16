@@ -89,7 +89,7 @@ export interface NormalizedJob {
   postedAt: Date
   salaryRange: string | null // human-readable salary string or null
   category: string // 'tech' | 'finance' | 'sales' | 'marketing' | 'healthcare' | 'design' | 'operations' | 'hr' | 'legal' | 'education' | 'other'
-  country: string  // 'nigeria' | 'global' — lowercase only for consistent DB queries
+  country: string // 'nigeria' | 'global' — lowercase only for consistent DB queries
 }
 
 /**
@@ -108,10 +108,10 @@ export interface JobFilters {
   limit?: number
   source?: JobSource
   remote?: boolean
-  q?: string      // Full-text search on title and company (ILIKE)
+  q?: string // Full-text search on title and company (ILIKE)
   category?: string // filter by job category ('tech' | 'finance' | 'sales' | etc.)
-  country?: string  // filter by job market: 'nigeria' | 'global'
-  since?: Date    // Filter jobs posted after this date
+  country?: string // filter by job market: 'nigeria' | 'global'
+  since?: Date // Filter jobs posted after this date
   minScore?: number // Filter by minimum match score
 }
 

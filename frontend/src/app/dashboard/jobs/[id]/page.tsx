@@ -148,11 +148,7 @@ export default function JobDetailPage({ params }: JobDetailPageProps) {
         </section>
       </motion.div>
 
-      <ApplyDialog
-        job={jobForDialog}
-        open={dialogOpen}
-        onClose={() => setDialogOpen(false)}
-      />
+      <ApplyDialog job={jobForDialog} open={dialogOpen} onClose={() => setDialogOpen(false)} />
     </>
   )
 }

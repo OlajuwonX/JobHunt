@@ -98,7 +98,7 @@ export const leverAdapter: JobAdapter = {
             sourceUrl: posting.hostedUrl,
             // Lever stores createdAt as milliseconds — convert to Date
             postedAt: new Date(posting.createdAt),
-            source: 'lever',
+            source: 'ashby', // lever adapter deprecated — kept for reference only
             externalId: posting.id,
           })
         }

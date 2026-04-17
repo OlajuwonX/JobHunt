@@ -47,11 +47,12 @@ const parser = new Parser({
   },
 })
 
-// The RSS feeds to parse — multiple categories for comprehensive coverage
+// The RSS feeds to parse — multiple categories for comprehensive coverage.
+// NOTE: remote-finance-legal-jobs.rss returns 403 Forbidden — removed from list.
+//       The main feed already includes finance/legal jobs, so no coverage is lost.
 const WWR_FEEDS = [
   'https://weworkremotely.com/remote-jobs.rss', // Main feed (all categories)
   'https://weworkremotely.com/categories/remote-programming-jobs.rss',
-  'https://weworkremotely.com/categories/remote-finance-legal-jobs.rss',
   'https://weworkremotely.com/categories/remote-sales-and-marketing-jobs.rss',
   'https://weworkremotely.com/categories/remote-customer-support-jobs.rss',
   'https://weworkremotely.com/categories/remote-design-jobs.rss',

@@ -35,7 +35,7 @@ import { runScraperFetch } from '../jobs/fetchScraperJobs'
  */
 const JOB_SOURCE_ENUM = z.enum([
   'greenhouse',
-  'lever',
+  'ashby',
   'remotive',
   'arbeitnow',
   'jobicy',
@@ -44,7 +44,6 @@ const JOB_SOURCE_ENUM = z.enum([
   'jobberman',
   'myjobmag',
   'hotnigerianjobs',
-  'ngcareers',
 ])
 
 /**

@@ -66,7 +66,7 @@ export interface RawJob {
    */
   source:
     | 'greenhouse'
-    | 'lever'
+    | 'ashby'
     | 'remotive'
     | 'arbeitnow'
     | 'jobicy'
@@ -75,7 +75,6 @@ export interface RawJob {
     | 'jobberman'
     | 'myjobmag'
     | 'hotnigerianjobs'
-    | 'ngcareers'
 
   /**
    * The source platform's own internal job ID.

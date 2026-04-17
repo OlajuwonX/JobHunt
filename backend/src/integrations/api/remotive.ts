@@ -29,18 +29,21 @@ import { stripHtml } from '../../utils/stripHtml'
 const REMOTIVE_BASE = 'https://remotive.com/api/remote-jobs'
 
 // All job categories we fetch from Remotive.
-// Keeping this broad ensures we surface all types of remote work, not just engineering.
+// Slugs verified from: GET https://remotive.com/api/remote-jobs/categories
+// Previous slugs (software-dev, devops-sysadmin, etc.) no longer work after Remotive's 2024 redesign.
 const CATEGORIES = [
-  'software-dev',
-  'devops-sysadmin',
+  'software-development',
+  'devops',
   'design',
-  'finance-legal',
+  'finance',
   'marketing',
-  'customer-support',
+  'customer-service',
   'product',
   'data',
-  'sales',
-  'business',
+  'sales-business',
+  'human-resources',
+  'ai-ml',
+  'writing',
 ]
 
 // TypeScript interface matching Remotive's API response

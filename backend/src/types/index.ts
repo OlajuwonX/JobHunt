@@ -53,7 +53,7 @@ export interface PaginatedResponse<T> {
  */
 export type JobSource =
   | 'greenhouse'
-  | 'lever'
+  | 'ashby'
   | 'remotive'
   | 'arbeitnow'
   | 'jobicy'
@@ -62,7 +62,6 @@ export type JobSource =
   | 'jobberman'
   | 'myjobmag'
   | 'hotnigerianjobs'
-  | 'ngcareers'
 
 /**
  * The cleaned, ready-for-database job shape produced by the normalizer.

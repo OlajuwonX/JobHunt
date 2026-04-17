@@ -32,7 +32,7 @@ import { RawJob } from '../integrations/types'
 
 // ─── Import API Adapters ──────────────────────────────────────────────────────
 import { greenhouseAdapter } from '../integrations/api/greenhouse'
-import { leverAdapter } from '../integrations/api/lever'
+import { ashbyAdapter } from '../integrations/api/ashby'
 import { remotiveAdapter } from '../integrations/api/remotive'
 import { arbeitnowAdapter } from '../integrations/api/arbeitnow'
 import { jobicyAdapter } from '../integrations/api/jobicy'
@@ -40,9 +40,11 @@ import { themuseAdapter } from '../integrations/api/themuse'
 import { weworkremotelyAdapter } from '../integrations/api/weworkremotely'
 
 // All adapters in one array — easy to add/remove without changing runApiFetch()
+// NOTE: Lever adapter removed — Lever's v0 public API deprecated (all slugs 404 as of 2026).
+//       Replaced with Ashby (ashbyhq.com), the modern ATS now used by Notion, OpenAI, Ramp, etc.
 const API_ADAPTERS = [
   greenhouseAdapter,
-  leverAdapter,
+  ashbyAdapter,
   remotiveAdapter,
   arbeitnowAdapter,
   jobicyAdapter,

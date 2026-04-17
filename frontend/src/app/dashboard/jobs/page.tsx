@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback, Suspense } from 'react'
+import { useState, useCallback, useRef, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useQueryClient } from '@tanstack/react-query'
 import { AnimatePresence, motion } from 'framer-motion'
@@ -61,7 +61,19 @@ function JobsContent() {
   const [applyJob, setApplyJob] = useState<Job | null>(null)
   const [applyDialogOpen, setApplyDialogOpen] = useState(false)
 
+  // Track whether a non-pagination filter just changed so we can show
+  // skeletons immediately instead of keeping stale cards on screen.
+  const [filterPending, setFilterPending] = useState(false)
+  const filterPendingRef = useRef(false)
+
   const { data, isLoading, isFetching } = useJobs(filters)
+
+  // Once the query settles, clear the pending flag.
+  if (!isFetching && filterPendingRef.current) {
+    filterPendingRef.current = false
+    // Defer state update to avoid "setState during render" warning.
+    Promise.resolve().then(() => setFilterPending(false))
+  }
 
   const updateFilter = useCallback(
     (key: string, value: string | undefined) => {
@@ -72,6 +84,14 @@ function JobsContent() {
         current.set(key, value)
       }
       if (key !== 'page') current.delete('page')
+
+      // Mark filter as pending so we show skeletons immediately.
+      // Pagination changes don't need this — they're fast and non-jarring.
+      if (key !== 'page') {
+        filterPendingRef.current = true
+        setFilterPending(true)
+      }
+
       router.replace(`/dashboard/jobs?${current.toString()}`)
     },
     [router, searchParams]
@@ -113,7 +133,6 @@ function JobsContent() {
     setApplyDialogOpen(true)
   }, [])
 
-  // Called from the detail modal's Apply button
   const handleModalApply = useCallback(() => {
     setApplyDialogOpen(true)
   }, [])
@@ -122,14 +141,17 @@ function JobsContent() {
   const jobs = data?.items ?? []
   const pagination = data?.pagination
 
+  // Show skeleton grid when: initial load OR a non-pagination filter just changed.
+  const showSkeleton = isLoading || filterPending
+
   return (
     <div className="flex flex-col min-h-full">
       <FilterBar filters={filters} onFilterChange={updateFilter} />
 
-      <div className="mx-auto w-full max-w-7xl px-4 py-6 flex-1">
+      <div className="mx-auto w-full max-w-7xl px-4 py-5 flex-1">
         <div className="mb-4 flex items-center justify-between">
           <p className="text-sm text-muted-foreground">
-            {isLoading ? (
+            {showSkeleton ? (
               <span className="animate-pulse">Loading jobs...</span>
             ) : (
               <>
@@ -138,12 +160,12 @@ function JobsContent() {
               </>
             )}
           </p>
-          {isFetching && !isLoading && (
+          {isFetching && !showSkeleton && (
             <span className="text-xs text-muted-foreground animate-pulse">Updating...</span>
           )}
         </div>
 
-        {isLoading ? (
+        {showSkeleton ? (
           <JobGridSkeleton />
         ) : jobs.length === 0 ? (
           <JobsEmptyState />
@@ -151,10 +173,10 @@ function JobsContent() {
           <AnimatePresence mode="wait">
             <motion.div
               key={searchParams.toString()}
-              initial={{ opacity: 0, y: 8 }}
+              initial={{ opacity: 0, y: 6 }}
               animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -8 }}
-              transition={{ duration: 0.2 }}
+              exit={{ opacity: 0, y: -6 }}
+              transition={{ duration: 0.15 }}
               className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3"
             >
               {jobs.map((job) => (
@@ -170,7 +192,7 @@ function JobsContent() {
           </AnimatePresence>
         )}
 
-        {pagination && (
+        {!showSkeleton && pagination && (
           <Pagination
             pagination={pagination}
             onPageChange={handlePageChange}
@@ -199,7 +221,6 @@ function JobsContent() {
   )
 }
 
-// useSearchParams() must be inside a Suspense boundary in the App Router.
 export default function JobsPage() {
   return (
     <Suspense fallback={<JobGridSkeleton />}>

@@ -52,7 +52,9 @@ export function JobCard({ job, onView, onApply, onSave }: JobCardProps) {
       {/* Salary + posted date */}
       <div className="flex items-center justify-between text-xs text-muted-foreground">
         {job.salaryRange ? (
-          <span className="font-medium text-foreground truncate max-w-[55%]">{job.salaryRange}</span>
+          <span className="font-medium text-foreground truncate max-w-[55%]">
+            {job.salaryRange}
+          </span>
         ) : (
           <span />
         )}

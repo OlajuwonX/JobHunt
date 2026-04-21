@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback, useRef, Suspense } from 'react'
+import { useState, useCallback, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useQueryClient } from '@tanstack/react-query'
 import { AnimatePresence, motion } from 'framer-motion'
@@ -61,18 +61,14 @@ function JobsContent() {
   const [applyJob, setApplyJob] = useState<Job | null>(null)
   const [applyDialogOpen, setApplyDialogOpen] = useState(false)
 
-  // Track whether a non-pagination filter just changed so we can show
-  // skeletons immediately instead of keeping stale cards on screen.
   const [filterPending, setFilterPending] = useState(false)
-  const filterPendingRef = useRef(false)
+  const [prevFetching, setPrevFetching] = useState(false)
 
   const { data, isLoading, isFetching } = useJobs(filters)
 
-  // Once the query settles, clear the pending flag.
-  if (!isFetching && filterPendingRef.current) {
-    filterPendingRef.current = false
-    // Defer state update to avoid "setState during render" warning.
-    Promise.resolve().then(() => setFilterPending(false))
+  if (isFetching !== prevFetching) {
+    setPrevFetching(isFetching)
+    if (!isFetching) setFilterPending(false)
   }
 
   const updateFilter = useCallback(
@@ -85,12 +81,8 @@ function JobsContent() {
       }
       if (key !== 'page') current.delete('page')
 
-      // Mark filter as pending so we show skeletons immediately.
-      // Pagination changes don't need this — they're fast and non-jarring.
-      if (key !== 'page') {
-        filterPendingRef.current = true
-        setFilterPending(true)
-      }
+      // Non-pagination filter → show skeletons immediately.
+      if (key !== 'page') setFilterPending(true)
 
       router.replace(`/dashboard/jobs?${current.toString()}`)
     },
@@ -141,7 +133,6 @@ function JobsContent() {
   const jobs = data?.items ?? []
   const pagination = data?.pagination
 
-  // Show skeleton grid when: initial load OR a non-pagination filter just changed.
   const showSkeleton = isLoading || filterPending
 
   return (

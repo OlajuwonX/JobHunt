@@ -369,8 +369,8 @@ Requirements:
       expect(result.country).toBe('nigeria')
     })
 
-    it('should return "nigeria" for jobs from Nigerian source "ngcareers"', () => {
-      const result = normalize(makeRawJob({ source: 'ngcareers', location: null }))
+    it('should return "nigeria" for jobs from Nigerian source "jobberman"', () => {
+      const result = normalize(makeRawJob({ source: 'jobberman', location: null }))
       expect(result.country).toBe('nigeria')
     })
 
@@ -380,7 +380,7 @@ Requirements:
     })
 
     it('should return "nigeria" when location contains "Abuja"', () => {
-      const result = normalize(makeRawJob({ source: 'lever', location: 'Abuja' }))
+      const result = normalize(makeRawJob({ source: 'ashby', location: 'Abuja' }))
       expect(result.country).toBe('nigeria')
     })
 

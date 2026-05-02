@@ -3,8 +3,8 @@
 import { useState, useCallback, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useQueryClient } from '@tanstack/react-query'
-import { AnimatePresence, motion } from 'framer-motion'
 import { SearchX } from 'lucide-react'
+import { cn } from '@/lib/utils'
 import { FilterBar } from '@/features/jobs/components/FilterBar'
 import { JobCard } from '@/features/jobs/components/JobCard'
 import { JobGridSkeleton } from '@/features/jobs/components/JobCardSkeleton'
@@ -61,15 +61,11 @@ function JobsContent() {
   const [applyJob, setApplyJob] = useState<Job | null>(null)
   const [applyDialogOpen, setApplyDialogOpen] = useState(false)
 
-  const [filterPending, setFilterPending] = useState(false)
-  const [prevFetching, setPrevFetching] = useState(false)
-
   const { data, isLoading, isFetching } = useJobs(filters)
 
-  if (isFetching !== prevFetching) {
-    setPrevFetching(isFetching)
-    if (!isFetching) setFilterPending(false)
-  }
+  // isStale: TanStack Query is fetching new data but we have old data to show.
+  // keepPreviousData means jobs is the previous page's results during this window.
+  const isStale = isFetching && !isLoading
 
   const updateFilter = useCallback(
     (key: string, value: string | undefined) => {
@@ -80,10 +76,6 @@ function JobsContent() {
         current.set(key, value)
       }
       if (key !== 'page') current.delete('page')
-
-      // Non-pagination filter → show skeletons immediately.
-      if (key !== 'page') setFilterPending(true)
-
       router.replace(`/dashboard/jobs?${current.toString()}`)
     },
     [router, searchParams]
@@ -133,7 +125,9 @@ function JobsContent() {
   const jobs = data?.items ?? []
   const pagination = data?.pagination
 
-  const showSkeleton = isLoading || filterPending
+  // Only show the skeleton on true first load — no data at all yet.
+  // When stale (filter/search changed, waiting for new results), we dim the existing grid instead.
+  const showSkeleton = isLoading || (isStale && jobs.length === 0)
 
   return (
     <div className="flex flex-col min-h-full">
@@ -151,8 +145,8 @@ function JobsContent() {
               </>
             )}
           </p>
-          {isFetching && !showSkeleton && (
-            <span className="text-xs text-muted-foreground animate-pulse">Updating...</span>
+          {isStale && !showSkeleton && (
+            <span className="text-xs text-muted-foreground animate-pulse">Searching...</span>
           )}
         </div>
 
@@ -161,29 +155,25 @@ function JobsContent() {
         ) : jobs.length === 0 ? (
           <JobsEmptyState />
         ) : (
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={searchParams.toString()}
-              initial={{ opacity: 0, y: 6 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -6 }}
-              transition={{ duration: 0.15 }}
-              className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3"
-            >
-              {jobs.map((job) => (
-                <JobCard
-                  key={job.id}
-                  job={job}
-                  onView={handleView}
-                  onApply={handleApply}
-                  onSave={handleSave}
-                />
-              ))}
-            </motion.div>
-          </AnimatePresence>
+          <div
+            className={cn(
+              'grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 transition-opacity duration-200',
+              isStale && 'opacity-40 pointer-events-none select-none'
+            )}
+          >
+            {jobs.map((job) => (
+              <JobCard
+                key={job.id}
+                job={job}
+                onView={handleView}
+                onApply={handleApply}
+                onSave={handleSave}
+              />
+            ))}
+          </div>
         )}
 
-        {!showSkeleton && pagination && (
+        {!showSkeleton && !isStale && pagination && (
           <Pagination
             pagination={pagination}
             onPageChange={handlePageChange}

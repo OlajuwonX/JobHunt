@@ -16,6 +16,13 @@
  *   - Pushing "you have 3 new matching jobs" to the user's browser
  *     when the daily cron job finishes aggregating
  *
+ * AUTH FLOW:
+ *   1. Frontend obtains a JWT access token from POST /auth/login
+ *   2. Frontend connects: io({ auth: { token: accessToken } })
+ *   3. Socket.io middleware verifies the JWT — rejects unauthenticated connections
+ *   4. On connection, the server joins the socket to the user's private room
+ *   5. Events are emitted per-user: getIO().to(userId).emit('new-jobs', {...})
+ *
  * HOW TO EMIT FROM ANYWHERE IN THE APP:
  *   import { getIO } from '../utils/socket'
  *   getIO().to(userId).emit('new-jobs', { count: 5 })
@@ -25,6 +32,7 @@
 
 import { Server as HTTPServer } from 'http'
 import { Server as SocketIOServer, Socket } from 'socket.io'
+import jwt from 'jsonwebtoken'
 
 // Module-level singleton — one Socket.io server for the whole app
 let io: SocketIOServer
@@ -32,6 +40,9 @@ let io: SocketIOServer
 /**
  * Creates the Socket.io server and attaches it to the HTTP server.
  * Called once in index.ts after app.listen().
+ *
+ * SECURITY: The io.use() middleware verifies the JWT before any connection
+ * is accepted. Invalid/missing tokens are rejected immediately.
  */
 export const createSocketServer = (httpServer: HTTPServer): SocketIOServer => {
   io = new SocketIOServer(httpServer, {
@@ -42,9 +53,38 @@ export const createSocketServer = (httpServer: HTTPServer): SocketIOServer => {
     },
   })
 
+  // ── JWT Auth Middleware ──────────────────────────────────────────────────
+  // Runs before every connection attempt. Rejects unauthenticated sockets.
+  // The frontend must pass: io({ auth: { token: accessToken } })
+  io.use((socket: Socket, next: (err?: Error) => void) => {
+    const token = socket.handshake.auth.token as string | undefined
+
+    if (!token) {
+      return next(new Error('Unauthorized'))
+    }
+
+    try {
+      const payload = jwt.verify(token, process.env.JWT_SECRET!)
+      // Store userId on socket.data for use in connection handler
+      socket.data.userId = (payload as { sub?: string; id?: string }).sub ??
+        (payload as { id?: string }).id
+      next()
+    } catch {
+      return next(new Error('Unauthorized'))
+    }
+  })
+
   io.on('connection', (socket: Socket) => {
     console.log(`Socket connected: ${socket.id}`)
 
+    // Auto-join the user's private room using the userId from JWT
+    // (set by auth middleware above)
+    if (socket.data.userId) {
+      socket.join(socket.data.userId as string)
+      console.log(`User ${socket.data.userId as string} auto-joined their room`)
+    }
+
+    // Legacy support: frontend can also manually emit 'join' with userId.
     // When the frontend connects, it should emit 'join' with the userId
     // so we can route events to the right user.
     // Example frontend code:

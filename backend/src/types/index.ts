@@ -151,17 +151,13 @@ export interface ProfileUpdateInput {
 // ─── Dashboard Types ───────────────────────────────────────────────────────────
 
 export interface DashboardStats {
-  stats: {
-    today: number
-    thisMonth: number
-    total: number
-  }
-  // Count of jobs grouped by source — supports all 11 sources
-  bySource: Partial<Record<JobSource, number>>
-  // Daily chart data for the last 30 days (line chart)
+  totals: { applied: number; saved: number; rejected: number; offers: number }
+  streak: number
+  weeklyTrend: string
   dailyChart: Array<{ date: string; count: number }>
-  // Monthly chart data for the last 12 months (bar chart)
-  monthlyChart: Array<{ month: string; count: number }>
+  weeklyChart: Array<{ week: string; count: number }>
+  bySource: Array<{ source: string; count: number }>
+  profileScore: { score: number; missing: string[] }
 }
 
 // ─── Pagination Metadata ──────────────────────────────────────────────────────
@@ -173,4 +169,51 @@ export interface PaginationMeta {
   totalPages: number
   hasNext: boolean
   hasPrev: boolean
+}
+
+// ─── Application Types ────────────────────────────────────────────────────────
+
+export interface ApplicationWithJob {
+  id: string
+  userId: string
+  jobId: string
+  status: string
+  appliedAt: Date
+  updatedAt: Date
+  job: {
+    id: string
+    title: string
+    company: string
+    source: string
+    location: string | null
+    remote: boolean
+    postedAt: Date
+    applyUrl: string
+    category: string
+    country: string
+    salaryRange: string | null
+    techStack: string[]
+  }
+}
+
+export interface ApplicationStats {
+  totals: { applied: number; saved: number; rejected: number; offers: number }
+  appliedToday: number
+  appliedThisWeek: number
+  topSources: Array<{ source: string; count: number }>
+}
+
+// ─── Profile with Email ───────────────────────────────────────────────────────
+
+export interface ProfileWithEmail {
+  id: string
+  userId: string
+  roles: string[]
+  skills: string[]
+  location: string | null
+  remotePref: string
+  resumeUrl: string | null
+  createdAt: Date
+  updatedAt: Date
+  user: { email: string }
 }

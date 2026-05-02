@@ -22,13 +22,19 @@
  * Called once at server startup. If the jobs table is empty (fresh install
  * or after a DB reset), it triggers an immediate fetch instead of waiting
  * until 02:00 AM. This makes the dev experience much better.
+ *
+ * POST-FETCH NOTIFICATION:
+ * After each successful batch, the cron scores newly inserted jobs against
+ * each user's profile and emits 'new-jobs' via Socket.io to matched users.
+ * This is best-effort — errors never crash the cron.
  */
 
 import cron from 'node-cron'
 import prisma from '../utils/prisma'
 import { normalize } from '../integrations/normalizer'
-import { batchUpsert } from '../services/jobs.service'
+import { batchUpsert, scoreJob } from '../services/jobs.service'
 import { RawJob } from '../integrations/types'
+import { getIO } from '../utils/socket'
 
 // ─── Import API Adapters ──────────────────────────────────────────────────────
 import { greenhouseAdapter } from '../integrations/api/greenhouse'
@@ -61,7 +67,8 @@ const API_ADAPTERS = [
  *   3. Collect all raw jobs from successful adapters
  *   4. Normalize each raw job (compute hash, extract tech stack, etc.)
  *   5. Batch upsert into the database
- *   6. Log summary stats
+ *   6. Emit 'new-jobs' Socket.io events to matched users (best-effort)
+ *   7. Log summary stats
  */
 export async function runApiFetch(): Promise<void> {
   console.log('\n[FetchApiJobs] Starting API job fetch at', new Date().toISOString())
@@ -102,7 +109,89 @@ export async function runApiFetch(): Promise<void> {
   console.log(
     `[FetchApiJobs] Complete. Processed: ${normalized.length}, DB operations: ${inserted}`
   )
+
+  // ── Emit new-jobs notifications to matched users ───────────────────────────
+  // Best-effort: wrapped in try/catch so a failure never crashes the cron job.
+  // Only runs if any jobs were actually inserted in this run.
+  if (inserted > 0) {
+    try {
+      await emitNewJobsToMatchedUsers(normalized)
+    } catch (err) {
+      console.warn('[FetchApiJobs] new-jobs emit block failed (non-fatal):', err)
+    }
+  }
+
   console.log('[FetchApiJobs] Finished at', new Date().toISOString(), '\n')
+}
+
+/**
+ * Scores newly inserted jobs against each user with a profile and emits
+ * 'new-jobs' Socket.io events to users who have >= 1 job with score >= 40.
+ *
+ * This is intentionally best-effort:
+ *   - No single user failure stops other users from being notified
+ *   - getIO() errors are caught — they happen if no socket server is running
+ *
+ * PERFORMANCE NOTE:
+ * We only query profiles once and score in-memory. Scoring is O(jobs × users)
+ * but each scoreJob() call is sub-millisecond so this stays fast.
+ */
+async function emitNewJobsToMatchedUsers(
+  newJobs: ReturnType<typeof normalize>[]
+): Promise<void> {
+  // Only users who have set at least one role (meaningful profile)
+  const profiles = await prisma.profile.findMany({
+    where: { roles: { isEmpty: false } },
+    select: {
+      userId: true,
+      roles: true,
+      skills: true,
+      remotePref: true,
+      location: true,
+    },
+  })
+
+  if (profiles.length === 0) return
+
+  for (const profile of profiles) {
+    try {
+      // Count how many of the new jobs score >= 40 for this user
+      const matchingCount = newJobs.filter((job) => {
+        const score = scoreJob(
+          {
+            title: job.title,
+            techStack: job.techStack,
+            remote: job.remote,
+            postedAt: job.postedAt,
+            country: job.country,
+          },
+          {
+            roles: profile.roles,
+            skills: profile.skills,
+            remotePref: profile.remotePref,
+            location: profile.location,
+          }
+        )
+        return score >= 40
+      }).length
+
+      if (matchingCount > 0) {
+        try {
+          getIO()
+            .to(profile.userId)
+            .emit('new-jobs', {
+              count: matchingCount,
+              message: `${matchingCount} new job${matchingCount === 1 ? '' : 's'} match your profile`,
+            })
+        } catch {
+          // Socket.io not initialized (e.g. during tests) — silently ignore
+        }
+      }
+    } catch (err) {
+      // Never let one user's failure stop notifications for others
+      console.warn(`[FetchApiJobs] Failed to emit for user ${profile.userId}:`, err)
+    }
+  }
 }
 
 /**

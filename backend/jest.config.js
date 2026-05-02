@@ -9,10 +9,17 @@ const config = {
   // tsconfig.test.json extends the main config and adds @types/jest so
   // the IDE resolves jest globals (describe, it, expect, etc.) in test files.
   preset: 'ts-jest',
-  globals: {
-    'ts-jest': {
-      tsconfig: './tsconfig.test.json',
-    },
+  transform: {
+    '^.+\\.tsx?$': [
+      'ts-jest',
+      {
+        tsconfig: './tsconfig.test.json',
+        diagnostics: {
+          // Suppress TS151002: hybrid module kind warning — tests use node moduleResolution
+          ignoreCodes: [151002],
+        },
+      },
+    ],
   },
 
   // Node environment — correct for Express (not jsdom/browser)
